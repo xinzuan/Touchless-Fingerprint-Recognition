@@ -10,16 +10,14 @@ import wave
 import pyaudio
 import threading
 import cv2
-
+import requests
 
 import numpy as np
 from cv2 import cv2
+import os 
 
 LARGEFONT = ("Verdana", 35)
 
-MEDIA_CHOICE = {
-    "ImageLSB"
-}
 
 # constant
 
@@ -43,6 +41,8 @@ img= module_from_file("hp", "../hp.py")
 utils = module_from_file("preprocess","../preprocess.py")
 
 
+is_video_on = False
+is_running = False
 class tkinterApp(tk.Tk):
     # __init__ function for class tkinterApp
     def __init__(self, *args, **kwargs):
@@ -62,7 +62,7 @@ class tkinterApp(tk.Tk):
 
         # iterating through a tuple consisting
         # of the different page layouts
-        for F in (ImageLSBPage,ImageLSBPage):
+        for F in (MainPage,MainPage):
 
             frame = F(container, self)
 
@@ -73,7 +73,7 @@ class tkinterApp(tk.Tk):
 
             frame.grid(row=0, column=0, sticky="nsew")
 
-        self.show_frame(ImageLSBPage)
+        self.show_frame(MainPage)
 
     # to display the current frame passed as
     # parameter
@@ -96,7 +96,7 @@ class BasePage(tk.Frame):
 
 
 
-class ImageLSBPage(BasePage):
+class MainPage(BasePage):
     result = None
 
     def __init__(self, parent, controller):
@@ -105,17 +105,20 @@ class ImageLSBPage(BasePage):
         label = ttk.Label(self, text="Recognition", font=("Verdana", 15))
         label.grid(row=1, column=1, padx=10, pady=(20, 20))
 
-        # Stego Media
-        self.stego_media_path = None
+        # Upload Finger Media
+        self.finger_media_path = None
 
+        add_finger_media_btn = tk.Button(
+            self, text="Select Finger Image", command=self.upload_finger_media
+        ).grid(row=START_ROW + 3, column=START_COLUMN, sticky=W, padx=(20, 0))
+
+        self.finger_media_label = tk.Label(self, text="No File")
+        self.finger_media_label.grid(row=START_ROW + 3 , column=START_COLUMN + 1, sticky=W, padx=(20, 0))
+
+        # Take Picture button
         take_picture_button = tk.Button(
             self, text="Take Picture", command=self.image_capturing
-        ).grid(row=START_ROW+1, column=START_COLUMN+4, sticky=tk.W, pady=4)
-
-
-
-
-
+        ).grid(row=START_ROW+1, column=START_COLUMN+4, sticky=W, padx=(20, 10))
 
 
         # Insert Host
@@ -131,7 +134,7 @@ class ImageLSBPage(BasePage):
 
         # Start Button
         start_btn = tk.Button(
-            self, text="Start comparing", command=self.extract_stego_obj
+            self, text="Start comparing", command=lambda: self.process_fingerprint(self.finger_media_path)
         ).grid(row=7, column=1, sticky=tk.W, pady=4)
 
         # Exit  Button
@@ -146,34 +149,48 @@ class ImageLSBPage(BasePage):
         self.user_message.grid(row=10, column=1, sticky=W, pady=20)
 
     def image_capturing(self):
-      
+        global is_video_on
+     
         
         if ( self.get_host() and self.get_port()):
+            
             self.host = self.get_host()
             self.port = self.get_port()
-            stream_link = "http://"+self.host+":"+self.port+"/video"
+            self.stream_link = "http://"+self.host+":"+self.port+"/video"
+            is_video_on = True
             try:
-                video_stream_widget = img.VideoStreamWidget(stream_link)
-            except:
-                self.set_message("Error mengkoneksi ipwebcam dengan aplikasi")
-            while True:
-                try:
-                    image_taken = video_stream_widget.show_frame()
-                    if(image_taken):
-                        print("halo")
-                       
-                       # video_stream_widget.exitCamera()
-                       
-                        preprocess_utils = utils.PreprocessImage(image_taken)
-                        max_ridges, min_ridges = preprocess_utils.detect_ridges()
-                        binary_res_name = preprocess_utils.threshold()
-                        binary_res = cv2.imread(binary_res_name)
-                        preprocess_utils.plot_images(max_ridges,binary_res)
-                        print("here")
-                except AttributeError:
-                    pass
+               
+                
+                self.video_stream_widget = img.VideoStreamWidget(self.stream_link)
+                
+                while is_video_on:
+                    try:
+                        image_taken = self.video_stream_widget.show_frame()
+                        
+                        if(image_taken):
+
+                            # video_stream_widget.exitCamera()
+                            if (self.check_blurry(image_taken) and self.check_brightness(image_taken)):
+                                self.process_fingerprint(image_taken)
+                                self.video_stream_widget.exitCamera()
+                                break 
+                            else:
+                                messagebox.showerror("Info", "Gambar tidak jelas / aktifkan light ketika mengambil gambar")
+                                pass
+
+                            
+                    except AttributeError:
+                        # print(AttributeError)
+                        # messagebox.showerror("Error", "Attribute Error")
+                        pass
+                
+            except Exception as e:
+                messagebox.showerror("Error", e)
+                pass
+           
         else:
-            self.set_message("Masukkan host dan port terlebih dahulu")
+            messagebox.showerror("Error", "Masukkan Host atau Port terlebih dahulu ")
+
         
         
         # self.img = img.imagecapturing(self.get_host(),self.get_port())
@@ -193,35 +210,45 @@ class ImageLSBPage(BasePage):
         except Exception as error:
             self.set_message(str(error))
 
-    def produce_stego_obj(self):
-        user_key = self.get_user_key()
-        enable_encrypt = not not self.enable_encryption.get()
-        randomize = not not self.randomize.get()
-        if (enable_encrypt or randomize) and (not user_key):
-            self.set_message("Please provide key when enabling encryption or randomizing")
+    def upload_finger_media(self):
+        media_path = filedialog.askopenfilename(filetypes=[("Image Files", ".png .jpg .jpeg")])
+        if not media_path:
             return
+        self.finger_media_path = media_path
+        self.finger_media_label["text"] = " : " + self.finger_media_path
 
-        result = self.lsb.produce_stego_obj(enable_encrypt, randomize, user_key)
-        self.set_result_image(result)
-        self.result = result
+        self.utils = utils.PreprocessImage(self.finger_media_path)
+        pil_image = self.utils.read_finger_media(self.finger_media_path)
 
-    def extract_stego_obj(self):
-        stego_obj_path = filedialog.askopenfilename(filetypes=[("Image Files", ".png .bmp")])
-        if not stego_obj_path:
-            return
-        # self.stego_media_path = media_path
-        # self.stego_media_label["text"] = " : " + self.stego_media_path
+        self.set_original_image(pil_image)
 
-        user_key = self.get_user_key()
+    def process_fingerprint(self,finger_image):
+        global is_video_on
+        if self.finger_media_path:
+            finger_image = self.finger_media_path
+        preprocess_utils = utils.PreprocessImage(finger_image)
+        original_img, preprocess_result = preprocess_utils.preprocess_image()
+        preprocess_utils.plot_images(original_img,preprocess_result)
+        #self.get_matcher(binary_res_name)
+ 
+        is_video_on = False
+    
+    def get_matcher(self,image):
+        url = 'http://localhost:8080/match'
+        user_inbound = {'pathimage': image,'name':""}
+      
+        
+        try:
+            request = requests.get(url, json = user_inbound)
+            result = request.json()
+            info =['Nama : ' + result['data']['name'], 'Hasil penilaian : {:.2f}'.format(result['data']['score'])]
+          
+            messagebox.showinfo("Result","\n".join(info))
+            os.remove(image)
+        except Exception as e: 
+            print(e)
+            pass
 
-        binary_content, file_name = lsb.LSB().read_stego_image(stego_obj_path, user_key)
-        self.set_message("{} has been extracted".format(file_name))
-
-        save_path = filedialog.asksaveasfilename(initialfile=file_name)
-        if save_path:
-            binary_file = open(save_path, "wb")
-            binary_file.write(binary_content)
-            binary_file.close()
 
     def set_original_image(self, pil_image):
         # Original Photo
@@ -258,6 +285,18 @@ class ImageLSBPage(BasePage):
 
     def get_port(self):
         return self.port_input.get()
+    
+    def reset(self):
+        self.host_input.insert(tk.END, "192.168.100.6")
+        self.port_input.insert(tk.END, "")
+
+    def check_blurry(self,img,threshold=100):
+        is_blur = cv2.Laplacian(img, cv2.CV_64F).var() < threshold
+        return is_blur
+    def check_brightness (self,img,threshold =128):
+        is_enough_light = np.mean(img) > threshold
+        return is_enough_light
+
 
 
 

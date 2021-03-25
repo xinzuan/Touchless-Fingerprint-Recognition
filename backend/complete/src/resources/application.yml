@@ -1,0 +1,52 @@
+# H2 properties
+spring:
+    datasource:
+        driverClassName: org.h2.Driver
+        password:
+        username: sa
+        url: jdbc:h2:mem:jpa_jbd
+    jpa:
+        hibernate:
+            ddl-auto: create-drop
+        properties:
+            hibernate:
+                dialect: org.hibernate.dialect.H2Dialect
+        show-sql: true
+    # Enables H2 console
+    h2:
+      console:
+          enabled: true
+          # custome H2 console url, Default is h2-console
+          path: /h2
+# enable H2 console access for GUI access and update port to run application different port than 8080.
+server:
+    # webserver port mapping, default is 8080
+    port: 8181
+    # custom root context, default is application name
+    servlet:
+        context-path: /usermanager
+    error:
+        whitelabel:
+              enabled: false
+dev:
+    app:
+        db: /home/vania/TA/Implement/Touchless-Fingerprint-Recognition/backend/complete/src/resources/fingerprints/
+# spring.datasource.url=jdbc:h2:mem:jpa_jbd
+# spring.datasource.driverClassName=org.h2.Driver
+# spring.datasource.username=sa
+# spring.datasource.password=
+# spring.jpa.hibernate.ddl-auto=create-drop
+# spring.jpa.properties.hibernate.dialect = org.hibernate.dialect.H2Dialect
+# spring.jpa.show-sql=true
+
+
+# # webserver port mapping, default is 8080
+# server.port=8181
+# # custom root context, default is application name
+# server.servlet.context-path=/usermanager
+# server.error.whitelabel.enabled=false
+# # Enables H2 console
+# spring.h2.console.enabled=true
+ 
+# # custome H2 console url, Default is h2-console
+# spring.h2.console.path=/h2

@@ -8,57 +8,86 @@ import cv2
 # import numpy as np 
 # from skimage import filters
 from threading import Thread
-
+import requests as r
 
 # host ="192.168.100.3"
 # port="8080"
 # username="13517090"
 # password="13517090"
+WINDOW_NAME ='IP Camera Video Streaming'
 class VideoStreamWidget(object):
     def __init__(self, src=0):
         # Create a VideoCapture object
+        self.url = src
+
         self.capture = cv2.VideoCapture(src)
+
         self.img_counter =0
 
         # Start the thread to read frames from the video stream
         self.thread = Thread(target=self.update, args=())
         self.thread.daemon = True
         self.thread.start()
+        self.upper_left = (100, 100)
+        self.bottom_right = (300, 300)
+       # self.root.protocol('WM_DELETE_WINDOW', self.destructor)
 
     def update(self):
         # Read the next frame from the stream in a different thread
         while True:
             if self.capture.isOpened():
                 (self.status, self.frame) = self.capture.read()
+                
+            else:
+                break
+
+        self.capture.release()
+
+    def __del__(self):
+        self.capture.release()
+        self.url =0
+        self.thread.terminate()
+        
 
     def show_frame(self):
         # Display frames in main program
+       
         if self.status:
+            
             self.frame = self.maintain_aspect_ratio_resize(self.frame, width=600)
+            width = self.capture.get(cv2.CAP_PROP_FRAME_WIDTH )
+            height = self.capture.get(cv2.CAP_PROP_FRAME_HEIGHT )
+            x = width //2
+            y = height//2
+
+            # ROI = image[y:y+h, x+x+w]
             roi=self.frame[100:300, 100:300]
+            
 
-
-            cv2.rectangle(self.frame,(100,100),(300,300),(255,255,1),0)
+            cv2.rectangle(self.frame,self.upper_left,self.bottom_right,(255,255,1),0)
             hsv = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
-            cv2.putText(self.frame, "Press q to exit application", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255))
-            cv2.putText(self.frame, "Press SPACE for capture image", (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255))
-            cv2.imshow('IP Camera Video Streaming', self.frame)
+            cv2.putText(self.frame, "Press q to exit application", (50, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255))
+            cv2.putText(self.frame, "Press SPACE for capture image", (50, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255))
+            cv2.imshow(WINDOW_NAME, self.frame)
 
         # Press Q on keyboard to stop recording
         key = cv2.waitKey(1)
         if key == ord('q'):
             self.capture.release()
-            cv2.destroyWindow('IP Camera Video Streaming')
-            # break
-            #exit(1)
+            cv2.destroyAllWindows()
+            exit(1)
+            
+
         elif key%256 == 32:
             # SPACE pressed
-            img_name = "img_{}.jpg".format(self.img_counter)
+            img_name = "img_{}.png".format(self.img_counter)
             self.img_counter+=1
             cv2.imwrite(img_name,roi)
-            # self.capture.release()
-            # cv2.destroyWindow('IP Camera Video Streaming')
+            #cv2.imwrite(img_name,cv2.rotate(roi, cv2.ROTATE_90_CLOCKWISE))
+
+            # self.thread.join()
             return img_name
+
 
     # Resizes a image and maintains aspect ratio
     def maintain_aspect_ratio_resize(self, image, width=None, height=None, inter=cv2.INTER_AREA):
@@ -83,10 +112,27 @@ class VideoStreamWidget(object):
 
         # Return the resized image
         return cv2.resize(image, dim, interpolation=inter)
+
+    def led(self, option: str ="off"):
+        # turn on or off the flash light
+        if option =="on":
+            return r.get(self.url+"/enabletorch")
+        return r.get(self.url+"/disabletorch")
+
     def exitCamera(self):
-        if self.capture.isOpened():
-            self.capture.release()
-            # cv2.destroyAllWindows()
+        print('yy')
+        while True:
+            if self.capture.isOpened():
+                break
+        #
+        cv2.destroyWindow('IP Camera Video Streaming')
+
+        
+            # break
+            #exit(1)
+            
+            
+
             
        
 # def imagecapturing(host ="192.168.100.3",port="8080"):

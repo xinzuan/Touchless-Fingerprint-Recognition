@@ -1,0 +1,11 @@
+/home/vania/TA/Implement/Touchless-Fingerprint-Recognition/backend/complete/src/main/java/com/example/restservice/models/entities/User.java
+/home/vania/TA/Implement/Touchless-Fingerprint-Recognition/backend/complete/src/main/java/com/example/restservice/models/outbounds/wrapper/DataResponse.java
+/home/vania/TA/Implement/Touchless-Fingerprint-Recognition/backend/complete/src/main/java/com/example/restservice/controllers/UserDetailsController.java
+/home/vania/TA/Implement/Touchless-Fingerprint-Recognition/backend/complete/src/main/java/com/example/restservice/models/inbounds/UserInbound.java
+/home/vania/TA/Implement/Touchless-Fingerprint-Recognition/backend/complete/src/main/java/com/example/restservice/services/impl/UserServiceImpl.java
+/home/vania/TA/Implement/Touchless-Fingerprint-Recognition/backend/complete/src/main/java/com/example/restservice/RestServiceApplication.java
+/home/vania/TA/Implement/Touchless-Fingerprint-Recognition/backend/complete/src/main/java/com/example/restservice/models/entities/CandidateDetails.java
+/home/vania/TA/Implement/Touchless-Fingerprint-Recognition/backend/complete/src/main/java/com/example/restservice/models/entities/CandidatesCache.java
+/home/vania/TA/Implement/Touchless-Fingerprint-Recognition/backend/complete/src/main/java/com/example/restservice/services/api/UserService.java
+/home/vania/TA/Implement/Touchless-Fingerprint-Recognition/backend/complete/src/main/java/com/example/restservice/repositories/CandidatesRepository.java
+/home/vania/TA/Implement/Touchless-Fingerprint-Recognition/backend/complete/src/main/java/com/example/restservice/models/outbounds/wrapper/BaseResponse.java
