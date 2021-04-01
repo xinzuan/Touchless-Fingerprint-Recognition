@@ -147,7 +147,29 @@ class MainPage(BasePage):
         tk.Label(self, text="Message:").grid(row=10, column=0, sticky=E, pady=20)
         self.user_message = tk.Label(self, text="No message right now")
         self.user_message.grid(row=10, column=1, sticky=W, pady=20)
+        
+        # Setting Button
+        # https://192.168.100.5:8080/settings_window.html
+        setting_btn = tk.Button(
+            self, text="Setting", command=lambda: self.open_new_window(self.finger_media_path)
+        ).grid(row=7, column=1, sticky=tk.W, pady=4)
+        
+    def open_new_window(self):
 
+        # Toplevel object which will 
+        # be treated as a new window
+        newWindow = Toplevel(master)
+
+        # sets the title of the
+        # Toplevel widget
+        newWindow.title("New Window")
+
+        # sets the geometry of toplevel
+        newWindow.geometry("200x200")
+
+        # A Label widget to show in toplevel
+        Label(newWindow, 
+              text ="This is a new window").pack()
     def image_capturing(self):
         global is_video_on
      
