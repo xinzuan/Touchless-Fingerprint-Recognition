@@ -11,7 +11,7 @@ import pyaudio
 import threading
 import cv2
 import requests
-
+from ipwebcam import IPWEBCAM
 import numpy as np
 from cv2 import cv2
 import os 
@@ -108,6 +108,12 @@ class MainPage(BasePage):
         # Upload Finger Media
         self.finger_media_path = None
 
+        # led
+        self.is_led_on = False
+
+        #zoom
+        self.zoom = 0
+
         add_finger_media_btn = tk.Button(
             self, text="Select Finger Image", command=self.upload_finger_media
         ).grid(row=START_ROW + 3, column=START_COLUMN, sticky=W, padx=(20, 0))
@@ -148,11 +154,16 @@ class MainPage(BasePage):
         self.user_message = tk.Label(self, text="No message right now")
         self.user_message.grid(row=10, column=1, sticky=W, pady=20)
         
-        # Setting Button
+        # STorch Button
         # https://192.168.100.5:8080/settings_window.html
-        setting_btn = tk.Button(
-            self, text="Setting", command=lambda: self.open_new_window(self.finger_media_path)
-        ).grid(row=7, column=1, sticky=tk.W, pady=4)
+        torch_btn = tk.Button(
+            self, text="ON/OFF Torch", command=self.led_settings
+        ).grid(row=START_ROW+1, column=START_COLUMN+4, sticky=tk.W, pady=4)
+            # Zoom
+        # 
+        zoom_in_btn = tk.Button(
+            self, text="Zoom In", command=lambda: self.open_new_window(self.zoom,True)
+        ).grid(row=START_ROW+1, column=START_COLUMN+5, sticky=tk.W, pady=4)
         
     def open_new_window(self):
 
@@ -176,19 +187,23 @@ class MainPage(BasePage):
         
         if ( self.get_host() and self.get_port()):
             
-            self.host = self.get_host()
-            self.port = self.get_port()
-            self.stream_link = "http://"+self.host+":"+self.port+"/video"
+            host = self.get_host()
+            port = self.get_port()
+            # self.stream_link = "http://"+self.host+":"+self.port+"/video"
             is_video_on = True
             try:
                
-                
-                self.video_stream_widget = img.VideoStreamWidget(self.stream_link)
+                #self.video_stream_widget = IPWEBCAM(host+":"+port, width=600, height=600)
+                self.video_stream_widget = img.VideoStreamWidget(host,port)
                 
                 while is_video_on:
                     try:
-                        image_taken = self.video_stream_widget.show_frame()
                         
+                        image_taken = self.video_stream_widget.show_frame()
+                        # self.video_stream_widget.led()
+                        # if self.is_led_on:
+                        # self.video_stream_widget.led("on")
+  
                         if(image_taken):
 
                             # video_stream_widget.exitCamera()
@@ -318,6 +333,26 @@ class MainPage(BasePage):
     def check_brightness (self,img,threshold =128):
         is_enough_light = np.mean(img) > threshold
         return is_enough_light
+    
+    def led_settings(self):
+        if self.video_stream_widget:
+            if not self.is_led_on:
+                self.video_stream_widget.led()
+            else:
+                self.video_stream_widget.led("on")
+    
+    def zoom_settings(self,is_zoom_in):
+        if is_zoom_in:
+            self.zoom += 25
+        else:
+            self.zoom -=25
+        if self.zoom < 0:
+            self.zoom = 0
+        if self.zoom > 100:
+            self.zoom = 100
+        self.video_stream_widget.zoom(self.zoom)
+
+
 
 
 

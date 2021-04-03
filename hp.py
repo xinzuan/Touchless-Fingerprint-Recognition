@@ -9,18 +9,18 @@ import cv2
 # from skimage import filters
 from threading import Thread
 import requests as r
-
+import urllib
 # host ="192.168.100.3"
 # port="8080"
 # username="13517090"
 # password="13517090"
 WINDOW_NAME ='IP Camera Video Streaming'
 class VideoStreamWidget(object):
-    def __init__(self, src=0):
+    def __init__(self, host = "192.168.100.5",port = "8080"):
         # Create a VideoCapture object
-        self.url = src
+        self.url ="https://"+host+":"+port+"/video"
 
-        self.capture = cv2.VideoCapture(src)
+        self.capture = cv2.VideoCapture(self.url)
 
         self.img_counter =0
 
@@ -82,11 +82,15 @@ class VideoStreamWidget(object):
             # SPACE pressed
             img_name = "img_{}.png".format(self.img_counter)
             self.img_counter+=1
+
             cv2.imwrite(img_name,roi)
             #cv2.imwrite(img_name,cv2.rotate(roi, cv2.ROTATE_90_CLOCKWISE))
 
             # self.thread.join()
             return img_name
+        elif key == ord('l'):
+            self.led('on')
+            pass
 
 
     # Resizes a image and maintains aspect ratio
@@ -116,8 +120,16 @@ class VideoStreamWidget(object):
     def led(self, option: str ="off"):
         # turn on or off the flash light
         if option =="on":
-            return r.get(self.url+"/enabletorch")
+            self.capture = cv2.VideoCapture(self.url+"/enabletorch")
+            # return r.get()
         return r.get(self.url+"/disabletorch")
+
+    def zoom(self, option: int = 0):
+        if option < 0:
+            option = 0
+        if option > 100:
+            option = 100
+        return r.get(f"{self.url}/ptz?zoom={option}")
 
     def exitCamera(self):
         print('yy')
@@ -127,7 +139,8 @@ class VideoStreamWidget(object):
         #
         cv2.destroyWindow('IP Camera Video Streaming')
 
-        
+
+
             # break
             #exit(1)
             
