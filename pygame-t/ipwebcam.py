@@ -4,11 +4,11 @@ import time
 import numpy as np
 import pygame
 import requests as r
+import os
+from state import AppState
+from preprocess import PreprocessImage
 
-
-
-
-
+SAVE_PATH = '/home/vania/TA/Implement/Touchless-Fingerprint-Recognition/pygame-t/img'
 class IPWEBCAM(object):
     def __init__(self,host='192.168.100.3',port='8080', width=400, height=400):
         self.url = "http://"+host+":"+port
@@ -19,20 +19,29 @@ class IPWEBCAM(object):
         self.y = height //2
         self.upper_left = (self.x-100, self.y-100)
         self.bottom_right = (self.x+100, self.y+100)
+        self.connect = False
+        self.zoom_num = 0
+        self.msg =''
+        self.temp={}
+
         
     def get_image(self):
         # Get our image from the phone
-        imgResp = urllib.request.urlopen(self.url + '/shot.jpg')
-       
-        # Convert our image to a numpy array so that we can work with it
-        imgNp = np.array(bytearray(imgResp.read()),dtype=np.uint8)
+        try:
+            imgResp = urllib.request.urlopen(self.url + '/shot.jpg')
+            self.connect = True
+            # Convert our image to a numpy array so that we can work with it
+            imgNp = np.array(bytearray(imgResp.read()),dtype=np.uint8)
 
-        # Convert our image again but this time to opencv format
-        img = cv2.imdecode(imgNp,-1)
-        roi=img[ self.y-100:self.y+100,self.x-100:self.x+100]
-        cv2.rectangle(img,self.upper_left,self.bottom_right,(255,255,1),0)
-        hsv = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
-        return img,roi
+            # Convert our image again but this time to opencv format
+            img = cv2.imdecode(imgNp,-1)
+            # roi=img[ self.y-100:self.y+100,self.x-100:self.x+100]
+            # cv2.rectangle(img,self.upper_left,self.bottom_right,(255,255,1),0)
+            # hsv = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
+            return True,img
+        except Exception as e:
+            self.msg = e
+            return False,e
 
 
     def get_image_string(self,img):
@@ -41,35 +50,31 @@ class IPWEBCAM(object):
 
     def get_pygame_image(self):
         # Get the image
-        img,roi = self.get_image()
-        
-        # split our image color_space into blue, green, red components
-        b,g,r = cv2.split(img)
+        is_img,res = self.get_image()
+        if is_img:
+                
+            # split our image color_space into blue, green, red components
+            b,g,r = cv2.split(res)
 
-        # compose our image back but this time as red, green and blue
-        img = cv2.merge([r,g,b])
+            # compose our image back but this time as red, green and blue
+            res = cv2.merge([r,g,b])
 
-        # get our image in string format and also the size and color_space for pygame to Use
-        img,shape,color_space = self.get_image_string(img)
+            # get our image in string format and also the size and color_space for pygame to Use
+            res,shape,color_space = self.get_image_string(res)
 
-        # create the pygame image from the string, size and color space
-        img = pygame.image.frombuffer(img,shape,color_space)
+            # create the pygame image from the string, size and color space
+            res = pygame.image.frombuffer(res,shape,color_space)
 
-        # resize the image
-        img = pygame.transform.scale(img, (self.width, self.height))
-        
-        
-        return img
+            # resize the image
+            res = pygame.transform.scale(res, (self.width, self.height))
+            
+            
+            return True,res
+        else:
+            return False,res
 
-    def swap_camera(self, option: str ="on"):
-        # swap the camera from thte back to the front
-        # option: on / off
-        return r.get(self.url+"/settings/ffc?set={}".format(option))
 
-    def overlay(self, option: str ="off"):
-        # turn on of off the text overlay
-        # option: on / off
-        return r.get(self.url+"/settings/overlay?set={}".format(option))
+
 
     def led(self, option: str ="off"):
         # turn on or off the flash light
@@ -111,9 +116,114 @@ class IPWEBCAM(object):
             option = 100
         return r.get(f"{self.url}/ptz?zoom={option}")
     
-    def snapshot(self,img):
+    def snapshot(self,img,blur_value):
         img_name = "img_{}.png".format(self.img_counter)
-        cv2.imwrite(img_name,img)
+        filename = os.path.join(SAVE_PATH,img_name)
+        
+        cv2.putText(img, str(blur_value), (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 255))
+        cv2.imwrite(filename, img)
+
+        # cv2.imwrite(img_name,img)
+        self.img_counter+=1
+        # preprocess = PreprocessImage
+        return img_name
         # return r.get((self.url + '/shot.jpg'))
+    
+    def connect_ipwebcam(self):
+        if self.connect:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self.connect = False
+                    pygame.quit()
+                    sys.exit()
+                if event.type == pygame.KEYUP:
+                    if event.key == pygame.K_q:
+                        self.connect = False
+                        return AppState.HOME,None
+                        # pygame.quit()
+                    if event.key == pygame.K_l:
+                        self.led("on")
+                    if event.key == pygame.K_m:
+                        self.led()
+                    if event.key == pygame.K_g:
+                        # Landscape
+                        self.set_orientation(0)
+                    if event.key == pygame.K_h:
+                        # Portait
+                        self.set_orientation(1)
+                    if event.key == pygame.K_0:
+                        is_img,img = self.get_image()
+                        
+                        #if not self.check_blurry(img):
+                        img_name = self.snapshot(img,9)
+                        return AppState.RESULT,img_name
+                        
+                
+                    if event.key == pygame.K_UP:
+                        self.zoom_num += 25
+                        if self.zoom_num > 100:
+                            self.zoom_num = 100
+                        self.zoom(self.zoom_num)
+                    if event.key == pygame.K_DOWN:
+                        self.zoom_num -= 25
+                        if self.zoom_num < 0:
+                            self.zoom_num = 0
+                        self.zoom(self.zoom_num)
+            # is_img,img = self.get_image()
+          
+            
+            # return AppState.RESULT,img_name
+            
+            
+        else:
+            print('x')
+
+    def draw(self,screen):
+        is_success,img = self.get_pygame_image()
+
+        if is_success:
+            screen.blit(img,(0,0))
+            print('a')
+ 
+            is_blur,value = self.check_blurry(img)
+            print(value)
+            if not is_blur and value > 0:
+                img_name = self.snapshot(img,value)
+                self.img_counter+=1
+
+        else:
+            self.connect =False
+            # return img
+    
+    def check_connection(self):
+        return self.connect
+    
+    def check_blurry(self,img,threshold_min=9, threshold_max=18):
+        # print(img)
+        # try:
+        blur_value = cv2.Laplacian(img, cv2.CV_64F).var()
+        print(blur_value)
+        # print(base,blur_value)
+        is_blur = blur_value > threshold_min and  blur_value < threshold_max
+        # if blur_value > threshold_min and  blur_value < threshold_max
+        #     self.temp.update({img: blur_value})
+        # for i in self.temp:
+
+
+        # print()
+        return is_blur,blur_value
+        # except TypeError:
+        #     print('why')
+        #     return True,0
+        #     pass
+    def check_brightness (self,img,threshold =128):
+        is_enough_light = np.mean(img) > threshold
+        return is_enough_light
+    def get_error_msg(self):
+        return self.msg
+           
+
+
+
 
         

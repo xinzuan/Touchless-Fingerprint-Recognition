@@ -37,3 +37,6 @@ detection -> https://sci-hub.ren/10.1109/SYSMART.2016.7894491
 1. why image resolution min 500 dpi (dots per inch) [Liu, Feng & Zhao, Qijun & Lu, Guangming & Luo, Nan. (2011). Selecting a Reference High Resolution for Fingerprint Recognition Using Minutiae and Pores. Instrumentation and Measurement, IEEE Transactions on. 60. 863 - 871. 10.1109/TIM.2010.2062610. ]
 - Required by FBI-compliant system 
 - Standard for forensic-quality fingerprinting ; now is common for a standard biometric system
+
+
+png is better than jpg or jpeg

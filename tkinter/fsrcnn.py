@@ -6,7 +6,7 @@ import time
 sr = dnn_superres.DnnSuperResImpl_create()
 
 # Read image
-image = cv2.imread('./img_0.jpg')
+image = cv2.imread('./img_v1.jpg')
 
 # Read the desired model
 print("read model...")
