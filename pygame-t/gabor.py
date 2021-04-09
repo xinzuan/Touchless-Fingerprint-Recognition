@@ -1,17 +1,18 @@
 '''
 based on :
 Hong, Lin; Wan, Yifei; Jain, Anil: Fingerprint image enhancement: Algorithm and performance evaluation. IEEE transactions on pattern analysis and machine intelligence, 20(8):777–789, 1998.
-
 '''
 import matplotlib.pyplot as plt
 import numpy as np
 from optparse import OptionParser
 import scipy.misc as misc
 from matplotlib.pyplot import imread
-
+import fingerprint_enhancer
 import utils
 import cv2
+import time
 
+KERNEL_SIZE = 16
 parser = OptionParser(usage="%prog [options] sourceimage [destinationimage]")
 
 parser.add_option("-i", dest="images", default=0, action="count",
@@ -28,6 +29,7 @@ parser.add_option("-b", "--no-binarization", dest="binarize", default=True, acti
         help="Use this option to disable the final binarization step")
 
 options, args = parser.parse_args()
+
 
 if len(args) == 0 or len(args) > 2:
     parser.print_help()
@@ -73,7 +75,7 @@ def gaborFilter(image, orientations, frequencies, w=32):
                 result[y:y+w, x:x+w] = image[y:y+w, x:x+w]
                 continue
 
-            kernel = gaborKernel(16, orientation, frequency)
+            kernel = gaborKernel(KERNEL_SIZE, orientation, frequency)
             result[y:y+w, x:x+w] = utils.convolve(image, kernel, (y, x), (w, w))
 
     return utils.normalize(result)
@@ -100,7 +102,7 @@ def gaborFilterSubdivide(image, orientations, frequencies, rect=None):
         if frequency < 0.0:
             result = image[y:y+h, x:x+w]
         else:
-            kernel = gaborKernel(16, orientation, frequency)
+            kernel = gaborKernel(KERNEL_SIZE, orientation, frequency)
             result = utils.convolve(image, kernel, (y, x), (h, w))
 
     else:
@@ -138,37 +140,32 @@ if __name__ == '__main__':
     print("Reading image")
 
     image = cv2.imread(sourceImage,0)
+    start_time = time.time()
+    out = fingerprint_enhancer.enhance_Fingerprint(image)
+    print("--- lib %s seconds ---" % (time.time() - start_time))
+    cv2.imwrite('lib-en.png',out)
     print(image.shape)
 
 
-    
-    # if options.images > 0:
-    #     utils.showImage(image, "original", vmax=255.0)
-
-    print("Normalizing")
-    image = utils.normalize(image)
-    # print(image.shape)
-    if options.images > 1:
-        utils.showImage(image, "normalized")
-
+    start_time = time.time()
     print("Finding mask")
     # print(image.shape)
     mask = utils.findMask(image)
     if options.images > 1:
         utils.showImage(mask, "mask")
 
-    print("Applying local normalization")
-    image = np.where(mask, utils.localNormalize(image), image)
-    if options.images > 1:
-        utils.showImage(image, "locally normalized")
+    # print("Applying local normalization")
+    # image = np.where(mask, utils.localNormalize(image), image)
+    # if options.images > 1:
+    #     utils.showImage(image, "locally normalized")
 
     print("Estimating orientations")
-    orientations = np.where(mask , utils.estimateOrientations(image), -1.0)
+    orientations = np.where(mask == 1.0, utils.estimateOrientations(image), -1.0)
     if options.images > 0:
         utils.showOrientations(image, orientations, "orientations", 8)
 
     print("Estimating frequencies")
-    frequencies = np.where(mask , utils.estimateFrequencies(image, orientations), -1.0)
+    frequencies = np.where(mask == 1.0 , utils.estimateFrequencies(image, orientations), -1.0)
     if options.images > 1:
         utils.showImage(utils.normalize(frequencies), "frequencies")
 
@@ -177,13 +174,19 @@ if __name__ == '__main__':
         image = utils.normalize(gaborFilterSubdivide(image, orientations, frequencies))
     else:
         image = gaborFilter(image, orientations, frequencies)
-    image = np.where(mask , image, 1.0)
+    # image = np.where(mask , image, 1.0)
     if options.images > 0:
         utils.showImage(image, "gabor")
 
     if options.binarize:
         print("Binarizing")
-        image = np.where(mask == 1.0, utils.binarize(image), 1.0)
+        cv2.imwrite('bb.png',image)
+        img = image.copy()
+        # img =  cv2.cvtColor(img,cv2.COLOR_GRAY2RGB)
+        # cv2.imwrite('x.png',img)
+        image = np.where(mask == 1.0, utils.binarize(image), -1.0)
+        print("--- ga %s seconds ---" % (time.time() - start_time))
+        cv2.imwrite('b.png',image)
         if options.images > 0:
             utils.showImage(image, "binarized")
 

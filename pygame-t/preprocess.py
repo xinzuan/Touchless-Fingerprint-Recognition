@@ -9,10 +9,14 @@ import fingerprint_enhancer
 import math
 
 import os
+from cv2 import dnn_superres
+# from gabor 
+# edsr around 5 minutes
+# Create an SR object
 
 
 TEMP_PATH ='/home/vania/TA/Implement/Touchless-Fingerprint-Recognition/backend/complete/src/resources/temp/'
-
+FSRCNN_PATH ='/home/vania/TA/Implement/Touchless-Fingerprint-Recognition/sr/FSRCNN_x4.pb'
 def get_absolute_path(file_path):
     if not os.path.abspath(file_path):
         file_path = os.path.join(os.getcwd(), file_path)
@@ -20,7 +24,10 @@ def get_absolute_path(file_path):
 
 class PreprocessImage(object):
     def __init__(self):
-        self.count = 0
+        self.count = 1
+        # self.fsrcnn_sr = sr = dnn_superres.DnnSuperResImpl_create()
+        # self.fsrcnn_sr.readModel(FSRCNN_PATH)
+        # self.fsrcnn_sr.setModel("fsrcnn", 4)
         super().__init__()
 
 
@@ -239,6 +246,7 @@ class PreprocessImage(object):
         
         return binary_mask
     def masking_finger(self,gray,mask):
+        # gray = cv2.convertScaleAbs(gray, alpha=255/gray.max())
         return cv2.bitwise_and(gray,gray, mask=mask)
     
     def smoothing(self,img):
@@ -253,36 +261,51 @@ class PreprocessImage(object):
             max_h = int(0.4*height)
             middle = width // 2
 
-            img = img[1:max_h, middle-250:middle+200]
+            img = img[1:max_h, middle-250:middle+250]
 
         img_copy = img.copy()
+        
+        # img_copy = self.fsrcnn_sr.upsample(img_copy)
+        # img_name = "img_cropped_{}.jpg".format(self.count)
+        # cv2.imwrite(img_name, img_copy)
+
+        # img = img_copy.copy()
+
         finger_masking = self.segment_finger(img_copy)
 
         img = self.to_gray(img)
-        img = self.gamma_correction(img)
+
+        # img = self.gamma_correction(img)
+
         img = self.increase_contrast(img)
         #sblm dan sesudah smooth hasilnya beda, igt buat perbedaan,tambahan step
         img = self.smoothing(img)
         img_name = "img_smoothing_{}.png".format(self.count)
         cv2.imwrite(img_name, img)
+
         img = self.normalize_image(img)
         img_name = "img_normalized_{}.png".format(self.count)
         cv2.imwrite(img_name, img)
+
         finger_masking = self.to_gray(finger_masking)
         
         img = self.masking_finger(img,finger_masking)
+        # img =  cv2.cvtColor(img,cv2.COLOR_GRAY2RGB)
+        img_name = "img_masked_{}.png".format(self.count)
+        cv2.imwrite(img_name, img)
+
         img = self.threshold(img)
         # img,maxima_ridges,minima_ridges = self.detect_ridges(img,2)
-        filename = os.path.join(TEMP_PATH,'threshold-res.png')
+        # filename = os.path.join(TEMP_PATH,'threshold-res.png')
         img_name = "img_thres_{}.png".format(self.count)
         cv2.imwrite(img_name, img)
-        # self.count+=1
+        self.count+=1
         # result = fingerprint_enhancer.enhance_Fingerprint(img)
         # img_name = "img_enhance_{}.png".format(self.count)
         # cv2.imwrite(img_name, result)       
-        return filename
+        return img_name
 
 
-# if __name__ == "__main__":
-#     p = PreprocessImage()
-#     p.preprocess_image('/home/vania/TA/Implement/Touchless-Fingerprint-Recognition/pygame-t/img2/img_110.png')
+if __name__ == "__main__":
+    p = PreprocessImage()
+    p.preprocess_image('./img_82.png')

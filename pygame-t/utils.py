@@ -6,6 +6,7 @@ import cv2
 
 def showImage(image, label, vmin=0.0, vmax=1.0):
     # cv2.imwrite('res.png',image)
+    print('here')
     plt.figure().suptitle(label)
     plt.imshow(image, cmap="gray", vmin=vmin, vmax=vmax)
 
@@ -39,32 +40,19 @@ def normalize(image):
     
     return np.uint8(cv2.normalize(image, None, 0, 255, cv2.NORM_MINMAX))
 
-def localNormalize(image, w=32):
-    image = np.copy(image)
-    height, width = image.shape
-    for y in range(0, height, w):
-        for x in range(0, width, w):
-            image[y:y+w, x:x+w] = normalize(image[y:y+w, x:x+w])
-
-    return image
-
 def binarize(image, w=32):
-    """
-    Perform a local binarization of an image. For each cell of the given size
-    w, the average value is calculated. Every pixel that is below this value,
-    is set to 0, every pixel above, is set to 1.
-    :param image: The image to be binarized.
-    :param w:     The size of the cell.
-    :returns:     The binarized image.
-    """
-
+    # 255 : white
     image = np.copy(image)
     height, width = image.shape
     for y in range(0, height, w):
         for x in range(0, width, w):
             block = image[y:y+w, x:x+w]
             threshold = np.average(block)
-            image[y:y+w, x:x+w] = np.where(block >= threshold, 1.0, 0.0)
+            # print(block)
+            # print(threshold)
+  
+                
+            image[y:y+w, x:x+w] = np.where(block >= threshold, 255, 0)
 
     return image
 
@@ -281,8 +269,9 @@ def estimateOrientations(image, w=16, interpolate=True):
             V_y, V_x = 0, 0
             for v in range(w):
                 for u in range(w):
-                    V_x += 2 * G_x[j*w+v, i*w+u] * G_y[j*w+v, i*w+u]
-                    V_y += G_x[j*w+v, i*w+u] ** 2 - G_y[j*w+v, i*w+u] ** 2
+                    index_j = j*w+v
+                    V_x += 2 * G_x[index_j, i*w+u] * G_y[index_j, i*w+u]
+                    V_y += G_x[index_j, i*w+u] ** 2 - G_y[index_j, i*w+u] ** 2
 
             O[j, i] = np.arctan2(V_x, V_y) * 0.5
 
@@ -309,19 +298,19 @@ def estimateOrientations(image, w=16, interpolate=True):
     # BUG: This is currently quite slow. It should be possible to implement
     #      this more efficiently.
     orientations = np.full(image.shape, -1.0)
-    if interpolate:
-        hw = w // 2
-        for y in range(yblocks - 1):
-            for x in range(xblocks - 1):
-                for iy in range(w):
-                    for ix in range(w):
-                        orientations[y*w+hw+iy, x*w+hw+ix] = averageOrientation(
-                                [O[y, x], O[y+1, x], O[y, x+1], O[y+1, x+1]],
-                                [iy + ix, w - iy + ix, iy + w - ix, w - iy + w - ix])
-    else:
-        for y in range(yblocks):
-            for x in range(xblocks):
-                orientations[y*w:(y+1)*w, x*w:(x+1)*w] = O[y, x]
+    # if interpolate:
+    hw = w // 2
+    for y in range(yblocks - 1):
+        for x in range(xblocks - 1):
+            for iy in range(w):
+                for ix in range(w):
+                    orientations[y*w+hw+iy, x*w+hw+ix] = averageOrientation(
+                            [O[y, x], O[y+1, x], O[y, x+1], O[y+1, x+1]],
+                            [iy + ix, w - iy + ix, iy + w - ix, w - iy + w - ix])
+    # else:
+    #     for y in range(yblocks):
+    #         for x in range(xblocks):
+    #             orientations[y*w:(y+1)*w, x*w:(x+1)*w] = O[y, x]
 
     return orientations
 
