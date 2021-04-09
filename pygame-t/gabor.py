@@ -140,11 +140,11 @@ if __name__ == '__main__':
     print("Reading image")
 
     image = cv2.imread(sourceImage,0)
-    start_time = time.time()
-    out = fingerprint_enhancer.enhance_Fingerprint(image)
-    print("--- lib %s seconds ---" % (time.time() - start_time))
-    cv2.imwrite('lib-en.png',out)
-    print(image.shape)
+    # start_time = time.time()
+    # out = fingerprint_enhancer.enhance_Fingerprint(image)
+    # print("--- lib %s seconds ---" % (time.time() - start_time))
+    # cv2.imwrite('lib-en.png',out)
+    # print(image.shape)
 
 
     start_time = time.time()
@@ -180,13 +180,14 @@ if __name__ == '__main__':
 
     if options.binarize:
         print("Binarizing")
-        cv2.imwrite('bb.png',image)
+        cv2.imwrite('bbw.png',image)
         img = image.copy()
         # img =  cv2.cvtColor(img,cv2.COLOR_GRAY2RGB)
         # cv2.imwrite('x.png',img)
-        image = np.where(mask == 1.0, utils.binarize(image), -1.0)
+        image = utils.binarize(image)
+        # image = np.where(mask == 1.0, utils.binarize(image), -1.0)
         print("--- ga %s seconds ---" % (time.time() - start_time))
-        cv2.imwrite('b.png',image)
+        cv2.imwrite('bw.png',image)
         if options.images > 0:
             utils.showImage(image, "binarized")
 
