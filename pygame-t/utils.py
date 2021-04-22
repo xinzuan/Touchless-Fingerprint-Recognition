@@ -39,7 +39,14 @@ def drawImage(source, destination, y, x):
 def normalize(image):
     
     return np.uint8(cv2.normalize(image, None, 0, 255, cv2.NORM_MINMAX))
+def localNormalize(image, w=32):
+    image = np.copy(image)
+    height, width = image.shape
+    for y in range(0, height, w):
+        for x in range(0, width, w):
+            image[y:y+w, x:x+w] = normalize(image[y:y+w, x:x+w])
 
+    return image
 def binarize(image, w=32):
     # 255 : white
     image = np.copy(image)
@@ -51,7 +58,7 @@ def binarize(image, w=32):
             # print(block)
             # print(threshold)
   
-                
+            image[y:y+w, x:x+w] = np.where(threshold == 0 , 255, image)
             image[y:y+w, x:x+w] = np.where(block >= threshold, 255, 0)
 
     return image
@@ -298,19 +305,19 @@ def estimateOrientations(image, w=16, interpolate=True):
     # BUG: This is currently quite slow. It should be possible to implement
     #      this more efficiently.
     orientations = np.full(image.shape, -1.0)
-    # if interpolate:
-    hw = w // 2
-    for y in range(yblocks - 1):
-        for x in range(xblocks - 1):
-            for iy in range(w):
-                for ix in range(w):
-                    orientations[y*w+hw+iy, x*w+hw+ix] = averageOrientation(
-                            [O[y, x], O[y+1, x], O[y, x+1], O[y+1, x+1]],
-                            [iy + ix, w - iy + ix, iy + w - ix, w - iy + w - ix])
-    # else:
-    #     for y in range(yblocks):
-    #         for x in range(xblocks):
-    #             orientations[y*w:(y+1)*w, x*w:(x+1)*w] = O[y, x]
+    if interpolate:
+        hw = w // 2
+        for y in range(yblocks - 1):
+            for x in range(xblocks - 1):
+                for iy in range(w):
+                    for ix in range(w):
+                        orientations[y*w+hw+iy, x*w+hw+ix] = averageOrientation(
+                                [O[y, x], O[y+1, x], O[y, x+1], O[y+1, x+1]],
+                                [iy + ix, w - iy + ix, iy + w - ix, w - iy + w - ix])
+    else:
+        for y in range(yblocks):
+            for x in range(xblocks):
+                orientations[y*w:(y+1)*w, x*w:(x+1)*w] = O[y, x]
 
     return orientations
 

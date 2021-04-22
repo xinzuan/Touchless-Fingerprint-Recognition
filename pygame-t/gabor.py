@@ -140,6 +140,9 @@ if __name__ == '__main__':
     print("Reading image")
 
     image = cv2.imread(sourceImage,0)
+    # cv2.imwrite('lib-e.png',image)
+    # image= cv2.ximgproc.thinning(image)
+    # cv2.imwrite('lib-thin.png',image)
     # start_time = time.time()
     # out = fingerprint_enhancer.enhance_Fingerprint(image)
     # print("--- lib %s seconds ---" % (time.time() - start_time))
@@ -154,10 +157,10 @@ if __name__ == '__main__':
     if options.images > 1:
         utils.showImage(mask, "mask")
 
-    # print("Applying local normalization")
-    # image = np.where(mask, utils.localNormalize(image), image)
-    # if options.images > 1:
-    #     utils.showImage(image, "locally normalized")
+    print("Applying local normalization")
+    image = np.where(mask, utils.localNormalize(image), image)
+    if options.images > 1:
+        utils.showImage(image, "locally normalized")
 
     print("Estimating orientations")
     orientations = np.where(mask == 1.0, utils.estimateOrientations(image), -1.0)

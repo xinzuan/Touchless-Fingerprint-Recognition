@@ -27,7 +27,12 @@ BOX_HEIGHT_SIZE = 32
 
 SPACE = 50
 
-MSG = "<No File Selected>"
+barPos      = (120, 360)
+barSize     = (200, 20)
+borderColor = (0, 0, 0)
+barColor    = (0, 128, 0)
+
+
 
 def prompt_file():
     """Create a Tk file dialog and cleanup when finished"""
@@ -37,7 +42,7 @@ def prompt_file():
     top.destroy()
     return file_name
 
-def home_screen(screen,font,file_msg):
+def home_screen(screen,font):
     start_btn = UIElement(
         center_position=(PYGAME_WIDTH//2, PYGAME_WIDTH//2),
         font_size=30,
@@ -89,17 +94,10 @@ def home_screen(screen,font,file_msg):
     
     )
   
-    img_file_name = UIElement(
-        center_position=(PYGAME_WIDTH//2 ,PYGAME_HEIGHT//3+SPACE),
-        font_size=15,
-        bg_rgb=BGCOLOR,
-        text_rgb=WHITE,
-        text=file_msg.text,
-        action=None,
-        hover= False
-    )
-    buttons = RenderUpdates(start_btn, quit_btn,host_label,port_label,upload_btn,img_file_name)
-
+    
+    buttons = RenderUpdates(start_btn, quit_btn,host_label,port_label,upload_btn)
+    # labels = RenderUpdates(img_file_name)
+    
     return app_loop(screen, buttons,input_boxes)
 
 
@@ -134,7 +132,17 @@ def result_screen(screen,image_result):
         action=AppState.HOME,
     )
 
-    buttons = RenderUpdates(return_btn)
+    name_label = UIElement(
+        center_position=(PYGAME_WIDTH//8-SPACE, PYGAME_HEIGHT//8+SPACE+BOX_HEIGHT_SIZE//2),
+        font_size=20,
+        bg_rgb=BGCOLOR,
+        text_rgb=WHITE,
+        text="Nama: ",
+        action=None,
+        hover= False
+    )
+
+    buttons = RenderUpdates(return_btn,name_label)
     
     return app_loop(screen,buttons,[],None,image_result)
 
@@ -142,6 +150,10 @@ def app_loop(screen, buttons,input_boxes=[],ipwebcam = None,results=None):
     """ Handles game loop until an action is return by a button in the
         buttons sprite renderer.
     """
+    
+    max_a = 100
+    a = 0
+    text = 'No file selected'
     
     while True:
         mouse_up = False
@@ -153,6 +165,9 @@ def app_loop(screen, buttons,input_boxes=[],ipwebcam = None,results=None):
             for box in input_boxes:
                 box.handle_event(event)
 
+        # for label in labels:
+        #     label.draw(screen)
+        
         for box in input_boxes:
             box.update()
 
@@ -160,7 +175,11 @@ def app_loop(screen, buttons,input_boxes=[],ipwebcam = None,results=None):
         for box in input_boxes:
             box.draw(screen)
         
+      
+        
 
+        
+        # DrawBar(screen,barPos, barSize, borderColor, barColor, a/max_a)
         for button in buttons:
             ui_action = button.update(pygame.mouse.get_pos(), mouse_up)
             # print(button.text)
@@ -177,13 +196,24 @@ def app_loop(screen, buttons,input_boxes=[],ipwebcam = None,results=None):
                 elif ui_action == AppState.UPLOAD:
                     f = prompt_file()
                     if f:
-                        file_msg.set_msg(f)
-                        return AppState.UPLOAD,f
+                        
+                        # file_msg.set_msg(f)
+                        text = f
+                        a+=1
+                        # updatetext(screen,text,font2)
+                        #DrawBar(screen,barPos, barSize, borderColor, barColor, a/max_a)
+                        
+                       
+                        continue
+                        
+                        # return AppState.UPLOAD,f
                     else:
                         return AppState.HOME,[]
                 return ui_action
-
+        
         buttons.draw(screen)
+        updatetext(screen,text,font2)
+        
 
         if ipwebcam:
             ipwebcam.draw(screen)
@@ -201,32 +231,65 @@ def app_loop(screen, buttons,input_boxes=[],ipwebcam = None,results=None):
             results.draw(screen)     
         # pygame.display.set_caption(f"Frames: File: {MSG}")
         pygame.display.flip()
+def get_matcher(image):
+    url = 'http://localhost:8080/match'
+    user_inbound = {'pathimage': image,'name':""}
+    
+    
+    try:
+        request = requests.get(url, json = user_inbound)
+        result = request.json()
 
+        return result
+        # info =['Nama : ' + result['data']['name'], 'Hasil penilaian : {:.2f}'.format(result['data']['score'])]
+        
+        
+    except Exception as e: 
+        return e
+        pass
 def main():
     pygame.init()
 
     screen = pygame.display.set_mode((PYGAME_WIDTH, PYGAME_HEIGHT))
+    global font2 
     font = pygame.font.Font(None, 32)
-   
+    font2 = pygame.font.Font(None, 20)
     app_state = AppState.HOME
 
     global ip_host_port
-    global file_msg 
-    global result
-
-    file_msg = ShowMessage(MSG)
     
+    global result
+    
+
+ 
+    a =0
 
     while True:
         if app_state == AppState.HOME:
 
-            app_state,ip_host_port = home_screen(screen,font,file_msg)
+            app_state,ip_host_port = home_screen(screen,font)
+            
+            max_a = 100
+            while app_state == AppState.UPLOAD:
+                if app_state == AppState.CAPTURE:
+                    print(text)
+                
+                print('a')
+                
+                # messagebox.showerror("Error",msg)
+                
+                # preprocess = PreprocessImage()
+                # img_res = preprocess.preprocess_image(file_msg.text)
+                # image_result = ImageResult(img_res,PYGAME_WIDTH//4,PYGAME_HEIGHT//2)
+                # app_state = result_screen(screen,image_result)
+                
             
 
 
         if app_state == AppState.CAPTURE:
 
-            ipwebcam = IPWEBCAM(ip_host_port[0],ip_host_port[1], width=PYGAME_WIDTH//2, height=PYGAME_HEIGHT//2) 
+            ipwebcam = IPWEBCAM(ip_host_port[0],ip_host_port[1], width=PYGAME_WIDTH, height=PYGAME_HEIGHT) 
+            print(ip_host_port)
             app_state,is_success,result = capture_screen(screen, ipwebcam)
             if not is_success:
               
@@ -240,13 +303,10 @@ def main():
                 # pass
 
 
-        if app_state == AppState.UPLOAD:
+        # if app_state == AppState.UPLOAD:
+        #     print('here')
             
-            preprocess = PreprocessImage()
-            img_res = preprocess.preprocess_image(file_msg.text)
-            image_result = ImageResult(img_res,PYGAME_WIDTH//4,PYGAME_HEIGHT//2)
-            app_state = result_screen(screen,image_result)
-            file_msg.set_msg(MSG)
+            
 
         if app_state == AppState.RESULT:
 
@@ -260,6 +320,17 @@ def main():
             pygame.quit()
             return
 
+def updatetext (screen,value,font):
+    
+    mixLED = font.render(value, 1, (255,255,255))
+    
+    screen.blit(mixLED, (PYGAME_WIDTH//4, PYGAME_HEIGHT//3))
+def DrawBar(screen,pos, size, borderC, barC, progress):
+
+    pygame.draw.rect(screen, borderC, (*pos, *size), 1)
+    innerPos  = (pos[0]+3, pos[1]+3)
+    innerSize = ((size[0]-6) * progress, size[1]-6)
+    pygame.draw.rect(screen, barC, (*innerPos, *innerSize))
 
 if __name__ == "__main__":
     main()

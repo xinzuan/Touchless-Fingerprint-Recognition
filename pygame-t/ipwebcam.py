@@ -18,26 +18,37 @@ class IPWEBCAM(object):
         self.x = width //2
         self.y = height //2
         self.upper_left = (self.x-100, self.y-100)
-        self.bottom_right = (self.x+100, self.y+100)
+        self.bottom_right = (self.x+300, self.y+500)
         self.connect = False
         self.zoom_num = 0
         self.msg =''
         self.temp={}
-
+        
+       
         
     def get_image(self):
         # Get our image from the phone
         try:
             imgResp = urllib.request.urlopen(self.url + '/shot.jpg')
+            
             self.connect = True
             # Convert our image to a numpy array so that we can work with it
             imgNp = np.array(bytearray(imgResp.read()),dtype=np.uint8)
 
             # Convert our image again but this time to opencv format
             img = cv2.imdecode(imgNp,-1)
-            # roi=img[ self.y-100:self.y+100,self.x-100:self.x+100]
-            # cv2.rectangle(img,self.upper_left,self.bottom_right,(255,255,1),0)
-            # hsv = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
+            # print(self.x)
+            # print(self.y)
+            # cv2.rectangle(frame,(x,y),(x+w,y+h),(255,0,0),2)
+            
+            # self.roi=img[ self.y-100:self.y+500,self.x-100:self.x+300]
+
+            
+            # cv2.rectangle(img,self.upper_left,self.bottom_right,(255,0,0),2)
+            # hsv = cv2.cvtColor(self.roi, cv2.COLOR_BGR2HSV)
+
+            # return True,img,self.roi
+
             return True,img
         except Exception as e:
             self.msg = e
@@ -52,6 +63,14 @@ class IPWEBCAM(object):
         # Get the image
         is_img,res = self.get_image()
         if is_img:
+             
+            not_blur,value = self.check_blurry(res)
+            print(value)
+            if not_blur :
+                print(value)
+                img_name = self.snapshot(res,value)
+        
+                
                 
             # split our image color_space into blue, green, red components
             b,g,r = cv2.split(res)
@@ -120,9 +139,10 @@ class IPWEBCAM(object):
         img_name = "img_{}.png".format(self.img_counter)
         filename = os.path.join(SAVE_PATH,img_name)
         
-        cv2.putText(img, str(blur_value), (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 255))
+        # cv2.putText(img, str(blur_value), (50, 20), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 255))
         cv2.imwrite(filename, img)
 
+        
         # cv2.imwrite(img_name,img)
         self.img_counter+=1
         # preprocess = PreprocessImage
@@ -156,7 +176,7 @@ class IPWEBCAM(object):
                         
                         #if not self.check_blurry(img):
                         img_name = self.snapshot(img,9)
-                        return AppState.RESULT,img_name
+                        # return AppState.RESULT,img_name
                         
                 
                     if event.key == pygame.K_UP:
@@ -183,13 +203,8 @@ class IPWEBCAM(object):
 
         if is_success:
             screen.blit(img,(0,0))
-            print('a')
- 
-            is_blur,value = self.check_blurry(img)
-            print(value)
-            if not is_blur and value > 0:
-                img_name = self.snapshot(img,value)
-                self.img_counter+=1
+            # print('a')
+
 
         else:
             self.connect =False
@@ -197,25 +212,22 @@ class IPWEBCAM(object):
     
     def check_connection(self):
         return self.connect
+
+    # threshold_min=12.5, threshold_max=13.6
     
-    def check_blurry(self,img,threshold_min=9, threshold_max=18):
-        # print(img)
-        # try:
+    def check_blurry(self,img,threshold_min=12.7, threshold_max=13.8):
+
         blur_value = cv2.Laplacian(img, cv2.CV_64F).var()
-        print(blur_value)
+        
         # print(base,blur_value)
         is_blur = blur_value > threshold_min and  blur_value < threshold_max
-        # if blur_value > threshold_min and  blur_value < threshold_max
-        #     self.temp.update({img: blur_value})
-        # for i in self.temp:
+
+       
 
 
         # print()
         return is_blur,blur_value
-        # except TypeError:
-        #     print('why')
-        #     return True,0
-        #     pass
+
     def check_brightness (self,img,threshold =128):
         is_enough_light = np.mean(img) > threshold
         return is_enough_light

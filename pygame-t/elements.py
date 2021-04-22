@@ -127,6 +127,11 @@ class UIElement(Sprite):
         """ Draws element onto a surface """
         surface.blit(self.image, self.rect)
 
+
+
+    
+        
+
 class ImageResult:
     def __init__(self, filename,width =100,height = 100):
         # print('e')

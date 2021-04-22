@@ -30,12 +30,12 @@ def check_blurry(path,img,b,threshold_min=9, threshold_max=12):
     # print()
     return is_blur,blur_value
 
-test_img_folder = 'img3/*'
+test_img_folder = 'img5/*'
 
 
 
 idx = 0
-p = PreprocessImage()
+
 for path in glob.glob(test_img_folder):
     idx += 1
     base = osp.splitext(osp.basename(path))[0]
