@@ -50,7 +50,7 @@ class PreprocessImage(object):
 
     #img should be an 2d numpy array
 
-    def detect_ridges(self,img, sigma=1.0,o='rc'):
+    def detect_ridges(self,img, sigma=1.0,o='xy'):
 
         H_elems = hessian_matrix(img, sigma=sigma, order=o)
         maxima_ridges, minima_ridges = hessian_matrix_eigvals(H_elems)
@@ -207,29 +207,14 @@ class PreprocessImage(object):
         height, width = img.shape
         
 
-        # img = self.otsu_thresholding(img)
+       
 
         
 
         (y, x) = np.where(img == 255)
         (topy, topx) = (np.min(y), np.min(x))
         (bottomy, bottomx) = ((np.max(y)), np.max(x))
-        # img = img[topy:bottomy+1, topx:bottomx+1]
 
-
-
-        # # # Create new blank image and shift ROI to new coordinates
-        # mask = np.zeros(img.shape, dtype=np.uint8)
-
-       
-        
-        # height2 = height//3
-        
-
-        # mask = img[height:height2,1:width]
-
-
-        # masked = cv2.bitwise_and(img, img, mask=mask)
         
        
 
@@ -251,7 +236,7 @@ class PreprocessImage(object):
         # out = cv2.cvtColor(res,cv2.COLOR_YUV2BGR)
         out = clahe.apply(img)
         return out
-    def increase_contrast_sr(self,img,clipLimit=4,size=(3,3)):
+    def increase_contrast_sr(self,img,clipLimit=4,size=(8,8)):
         clahe = cv2.createCLAHE(clipLimit=clipLimit,tileGridSize=size)
         return clahe.apply(img)
     # gamma correction : untuk control overall brightnes, gelap -> terang
@@ -259,21 +244,21 @@ class PreprocessImage(object):
         # compute gamma = log(mid*255)/log(mean)
         mean = np.mean(gray)
         
-        print(mean)
-        # if mean < threshold:
-        #     return gray 
-        # else:
+        # print(mean)
+        if mean > threshold:
+            return gray 
+        else:
         
-        #     mid = 0.5
+            mid = 0.5
             
-        #     gamma = math.log(mid*255)/math.log(mean)
-        #     # print(gamma)
+            gamma = math.log(mid*255)/math.log(mean)
+            # print(gamma)
 
-        #     # do gamma correction
-        #     img_gamma1 = np.power(gray, gamma).clip(0,255).astype(np.uint8)
+            # do gamma correction
+            img_gamma1 = np.power(gray, gamma).clip(0,255).astype(np.uint8)
 
-        #     # print(img_estim(img_gamma1))
-        #     return img_gamma1
+            # print(img_estim(img_gamma1))
+            return img_gamma1
 
     def automatic_brightness_and_contrast(self,image, clip_hist_percent=1):
         # gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -337,8 +322,8 @@ class PreprocessImage(object):
        
         return img
     def adaptive_threshold_sr(self,img):
-        img = self.normalize(img)
-        img = cv2.convertScaleAbs(img, alpha=255/img.max())
+        # img = self.normalize(img)
+        # img = cv2.convertScaleAbs(img, alpha=255/img.max())
        
         
        
@@ -473,12 +458,17 @@ class PreprocessImage(object):
         
             img = img[int(topy):int(cY-110), int(topx):int(bottomx)]
 
- 
-
+        mask_result = cv2.bitwise_and(img, img, mask=mask)
+        # mask_result = self.to_gray(mask_result)
+        # x,y,w,h = cv2.boundingRect(mask_result)
+        # x = x-15
+        # w = w-15
+        
+        # mask_result = mask_result[y:y+h, x:x+w]
 
         
        
-        return cv2.bitwise_and(img, img, mask=mask)
+        return mask_result
     
     def smoothing(self,img):
         return cv2.GaussianBlur(img,(5,5),0)
@@ -528,7 +518,7 @@ class PreprocessImage(object):
         return fsrcnn_metrics_scores,edsr_metrics_scores,esgran_metrics_scores
     
     def super_resolution(self,img,img_path,base):
-        img = self.resize_image(img,30)
+        img = self.resize_image(img,60)
         img_name = base+ "_resize_{}.png".format(self.count)
         cv2.imwrite(img_name, img)
 
@@ -543,7 +533,7 @@ class PreprocessImage(object):
         start_time_f = time.time()
         img_fr = self.fsrcnn_sr.upsample_image(sr_img)
         end_f = time.time()
-        self.gamma_correction(img_fr)
+        # img_fr =self.gamma_correction(img_fr)
        
         
         img_name = base + "_fsrcnn_sr_{}.png".format(self.count)
@@ -554,7 +544,8 @@ class PreprocessImage(object):
         start_time_e = time.time()
         img_e = self.edsr_sr.upsample_image(sr2_img)
         end_e = time.time()
-        self.gamma_correction(img_e)
+        # img_e = self.gamma_correction(img_e)
+        
        
        
         img_name = base + "_edsr_sr_{}.png".format(self.count)
@@ -563,7 +554,7 @@ class PreprocessImage(object):
         start_time = time.time()
         img_es = self.esgran_sr.upsample_image(sr3_img)
         end_time = time.time()
-        self.gamma_correction(img_es)
+        # img_es= self.gamma_correction(img_es)
        
         
         img_name = base + "_esgran_sr_{}.png".format(self.count)
@@ -590,29 +581,31 @@ class PreprocessImage(object):
                         'esgran_MSE':esgran[1],
                         'esgran_SSIM':esgran[2]}
                         
-        img_fr = self.to_gray(img_fr)
-        img_e = self.to_gray(img_e)
-        img_es = self.to_gray(img_es)
+        # img_fr = self.to_gray(img_fr)
+        # img_e = self.to_gray(img_e)
+        # img_es = self.to_gray(img_es)
 
-        img_fr = self.normalize_image(img_fr)
-        img_e = self.normalize_image(img_e)
-        img_es = self.normalize_image(img_es)
-
-        
+        # img_fr = self.normalize_image(img_fr)
+        # img_e = self.normalize_image(img_e)
+        # img_es = self.normalize_image(img_es)
 
         
 
+        
 
-        # img_fr = self.smoothing(img_fr)
-        # img_e = self.smoothing(img_e) 
-        # img_es = self.smoothing(img_es) 
+
+        img_fr = self.smoothing(img_fr)
+        img_e = self.smoothing(img_e) 
+        img_es = self.smoothing(img_es) 
 
         # # img_es = self.smoothing(img_es)
-        img_fr = self.increase_contrast_sr(img_fr)
-        img_e = self.increase_contrast_sr(img_e)
-        img_es = self.increase_contrast_sr(img_es)
+        img_fr = self.automatic_brightness_and_contrast(img_fr)
+        img_e = self.automatic_brightness_and_contrast(img_e)
+        img_es = self.automatic_brightness_and_contrast(img_es)
 
-        
+        img_fr = self.increase_contrast(img_fr)
+        img_e = self.increase_contrast(img_e)
+        img_es = self.increase_contrast(img_es)
         
         
         
@@ -631,7 +624,7 @@ class PreprocessImage(object):
         cv2.imwrite(filename, img_es)
         cv2.imwrite(img_name, img_es)
 
-        
+        # img_fr,maxima,minima = self.detect_ridges(img_fr,3)
         img_fr = self.adaptive_threshold(img_fr)
         img_name = base + "_fsrcnn_sr_{}.png".format(self.count)
         filename = os.path.join(TEMP_PATH,img_name)
@@ -701,12 +694,13 @@ class PreprocessImage(object):
         
         # img_name = img_path + "_maskedresult_{}.png".format(self.count)
         # cv2.imwrite(img_name, img)
+        img = self.to_gray(img)
         img_ref = img.copy()
 
-        # res = self.super_resolution(img_ref,img_path,base)
+        res = self.super_resolution(img_ref,img_path,base)
         
         
-        img = self.to_gray(img)
+        
         # self.gamma_correction(img)
         img = self.normalize_image(img)
         img = self.smoothing(img)
@@ -757,23 +751,6 @@ class PreprocessImage(object):
         cv2.imwrite(filename, img_x)
         cv2.imwrite(img_name,img_x)
 
-        # img_x = img.copy()
-        # img_x = self.adaptive_threshold(img_x)
-        # img_name = base + "_sobelthres_{}.png".format(self.count)
-        
-        # filename = os.path.join(TEMP_PATH,img_name)
-        # cv2.imwrite(filename, img_x)
-        # cv2.imwrite(img_name,img_x)
-
-        # # self.get_matcher(filename)
-        
-
-        # img_x = fingerprint_enhancer.enhance_Fingerprint(img_x)
-        # img_name = base + "_enchance_{}.png".format(self.count)
-        
-        # filename = os.path.join(TEMP_PATH,img_name)
-        # cv2.imwrite(filename, img_x)
-        # cv2.imwrite(img_name,img_x)
 
         
         
@@ -781,11 +758,7 @@ class PreprocessImage(object):
 
        
         self.count+=1
-
-        # filename = os.path.join(TEMP_PATH,'threshold-res.png')
-        # result = fingerprint_enhancer.enhance_Fingerprint(img)
-        # img_name = img_path + "_enhance_{}.png".format(self.count)
-        # cv2.imwrite(img_name, result)       
+    
         return res
 
 def get_matcher(image):
