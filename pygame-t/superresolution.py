@@ -27,7 +27,7 @@ class SuperResolution(object):
         
             img = cv2.cvtColor(img,cv2.COLOR_GRAY2RGB)
             img = self.sr.upsample(img)
-            img = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+            img = cv2.cvtColor(img,cv2.COLOR_RGB2GRAY)
             return img
 
         return self.sr.upsample(img)
@@ -61,5 +61,5 @@ class SRESGRAN(object):
         output = (output * 255.0).round()
         output = cv2.normalize(output, None, 0, 255, cv2.NORM_MINMAX, cv2.CV_8U)
         
-        output = cv2.cvtColor(output,cv2.COLOR_BGR2GRAY)
+        output = cv2.cvtColor(output,cv2.COLOR_RGB2GRAY)
         return output

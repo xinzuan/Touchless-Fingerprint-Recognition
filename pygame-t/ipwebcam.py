@@ -67,7 +67,7 @@ class IPWEBCAM(object):
             not_blur,value = self.check_blurry(res)
             print(value)
             if not_blur :
-                print(value)
+                # print(value)
                 img_name = self.snapshot(res,value)
         
                 

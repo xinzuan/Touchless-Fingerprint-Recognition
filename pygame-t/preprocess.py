@@ -27,6 +27,9 @@ from optparse import OptionParser
 TEMP_PATH ='/home/vania/TA/Implement/Touchless-Fingerprint-Recognition/backend/complete/src/resources/temp/'
 # FSRCNN_PATH ='/home/vania/TA/Implement/Touchless-Fingerprint-Recognition/models/FSRCNN_x4.pb'
 # EDSR_PATH ='/home/vania/TA/Implement/Touchless-Fingerprint-Recognition/models/EDSR_x4.pb'
+KNOWN_DISTANCE = 16 #cm
+KNOWN_WIDTH = 1.5 #cm
+FOCAL_LENGTH = 2312 # utk jari index berjarak 16 cm dr kamera
 SIZE = 32
 def get_absolute_path(file_path):
     if not os.path.abspath(file_path):
@@ -236,7 +239,7 @@ class PreprocessImage(object):
         # out = cv2.cvtColor(res,cv2.COLOR_YUV2BGR)
         out = clahe.apply(img)
         return out
-    def increase_contrast_sr(self,img,clipLimit=4,size=(8,8)):
+    def increase_contrast_sr(self,img,clipLimit=4,size=(16,16)):
         clahe = cv2.createCLAHE(clipLimit=clipLimit,tileGridSize=size)
         return clahe.apply(img)
     # gamma correction : untuk control overall brightnes, gelap -> terang
@@ -311,22 +314,13 @@ class PreprocessImage(object):
 
     #adaptive threshold 
     def adaptive_threshold(self,img):
-        # img = self.automatic_brightness_and_contrast(img)
-        # img_name = "_BEFORE THRES_{}.png".format(self.count)
-        # cv2.imwrite(img_name,img)
-        # img = self.to_gray(img)
-        # img = self.normalize(img)
+
         img = cv2.convertScaleAbs(img, alpha=255/img.max(),beta=img.min())
         img = cv2.adaptiveThreshold(img,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,cv2.THRESH_BINARY,11,2)
         
        
         return img
     def adaptive_threshold_sr(self,img):
-        # img = self.normalize(img)
-        # img = cv2.convertScaleAbs(img, alpha=255/img.max())
-       
-        
-       
         return cv2.adaptiveThreshold(img,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,cv2.THRESH_BINARY,11,2)
     
     def otsu_thresholding(self,img):
@@ -344,15 +338,15 @@ class PreprocessImage(object):
         return cv2.cvtColor(img,cv2.COLOR_GRAY2RGB)
 
     #Segmentation finger only
-    def segment_finger(self,img):
+    def segment_finger(self,img,is_fingertip):
         
         gray = self.to_gray(img)
         img = self.smoothing(img)
         
 
-        imgYCrCb = cv2.cvtColor(img, cv2.COLOR_RGB2YCrCb)
-        #Splitting into YCbCr
-        Y, Cb, Cr = cv2.split(imgYCrCb)
+        # imgYCrCb = cv2.cvtColor(img, cv2.COLOR_RGB2YCrCb)
+        # #Splitting into YCbCr
+        # Y, Cb, Cr = cv2.split(imgYCrCb)
 
         # img_merge =cv2.cvtColor(img_merge,cv2.COLOR_YCrCb2RGB)
         # img_merge = self.to_gray(img_merge)
@@ -365,7 +359,7 @@ class PreprocessImage(object):
         # for i in range(imgYCrCb.shape[0]):
         #     for j in range(imgYCrCb.shape[1]):
             
-        #         if Cr[i, j] >= 133 and Cr[i,j] <=180 and Cb[i,j] >= 77 and Cb[i,j] <= 127:
+        #         if Cr[i, j] > 133 and Cr[i,j] <180 and Cb[i,j] > 77 and Cb[i,j] < 127:
         #             # paint it white (finger region)
         #             binary_mask[i, j] = [255, 255, 255]
         #         else:
@@ -381,38 +375,27 @@ class PreprocessImage(object):
         if len(cnts) > 0:
             # grab the largest contour, then draw a mask for the pill
             c = max(cnts, key=cv2.contourArea)
+            if is_fingertip:
+                return c
+
             mask = np.zeros(gray.shape, dtype="uint8")
             mask = cv2.drawContours(mask, [c], -1, 255, -1)
 
-      
-        # max_height = (y+h)*0.6
-        # max_width = (x+w)-15
-        # start_x = x+15
-        # bottomx,bottomy,topx,topy = self.get_points(mask)
-        # # extTop = tuple(c[c[:, :, 1].argmin()][0]) # get extreme top poin in mask
-        # M = cv2.moments(mask)
-        # cX = int(M["m10"] / M["m00"])
-        
-        # cY = int(M["m01"] / M["m00"])
-        # # draw the contour and center of the shape on the image
-        # # cv2.drawContours(image, [c], -1, (0, 255, 0), 2)
-        # mask[cY+50:bottomy,topx:bottomx] = 0.0
-        # cv2.circle(mask, extTop, 7, (0, 0, 0), -1)
-        # cv2.circle(mask, (cX, cY), 7, (0, 0, 0), -1)
-        # cv2.putText(mask, "center", (cX - 20, cY - 20),cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 2)
-
-        
+       
 
         # mask = mask[y:max_height, start_x:max_width]
+        
 
         return mask
         # kebawah y semakin bertambah
     def masking_finger(self,img,mask):
+        img_backup= img.copy()
+       
 
         bottomx,bottomy,topx,topy = self.get_points(mask)
         
         
-        # extTop = tuple(c[c[:, :, 1].argmin()][0]) # get extreme top poin in mask
+         # get extreme top poin in mask
         M = cv2.moments(mask)
         cX = int(M["m10"] / M["m00"])
         
@@ -420,56 +403,114 @@ class PreprocessImage(object):
         
         # draw the contour and center of the shape on the image
         # cv2.drawContours(image, [c], -1, (0, 255, 0), 2)
-        mask[cY+100:bottomy,topx:bottomx] = 0.0
+
+        mask[cY+100:bottomy+1,topx:bottomx] = 0.0
+
+        # mask_temp = mask.copy()
+
+        # mask_temp = mask_temp[int(topy):int(cY+100), int(topx):int(bottomx)]
+        # x,y,w,h = cv2.boundingRect(mask_temp)
+        # # print(w)
+        # if w>=320: # thumb
+        #     mask = mask[int(topy):int(cY+100), int(topx):int(bottomx)]
         
-        # ellipse = cv2.fitEllipse(mask)
-        # cv2.ellipse(mask,ellipse,(0,255,0),2)
-
-
-        # bottomx,bottomy,topx,topy = self.get_points(mask)
-        # print(bottomy)
-        # if bottomx > 15:
+        #     img = img[int(topy):int(cY+100), int(topx):int(bottomx)]
             
-        #     bottomx = bottomx-15
-        # if topx > 15:
-        #     topx = topx-15
-        # height =0.6*bottomy
-        # print(height)
+        # else: #not thumb
+        #     mask = mask[int(topy):int(cY-110), int(topx):int(bottomx)]
         
-        # if bottomy-topy > 530:
-        #     bottomy = height
-
-        # print( bottomx)
-        # print(bottomy)
-        # print(topy)
-        # print(topx)
-        mask_temp = mask.copy()
-
-        mask_temp = mask_temp[int(topy):int(cY+100), int(topx):int(bottomx)]
-        x,y,w,h = cv2.boundingRect(mask_temp)
-        # print(w)
-        if w>=320: # thumb
-            mask = mask[int(topy):int(cY+100), int(topx):int(bottomx)]
+        #     img = img[int(topy):int(cY-110), int(topx):int(bottomx)]
         
-            img = img[int(topy):int(cY+100), int(topx):int(bottomx)]
-            
-        else: #not thumb
-            mask = mask[int(topy):int(cY-110), int(topx):int(bottomx)]
-        
-            img = img[int(topy):int(cY-110), int(topx):int(bottomx)]
 
+      
         mask_result = cv2.bitwise_and(img, img, mask=mask)
-        # mask_result = self.to_gray(mask_result)
-        # x,y,w,h = cv2.boundingRect(mask_result)
-        # x = x-15
-        # w = w-15
-        
-        # mask_result = mask_result[y:y+h, x:x+w]
 
         
        
         return mask_result
-    
+    def crop_finger_tip(self,img):
+        mask = img.copy()
+
+        c= self.segment_finger(img,True)
+        # M = cv2.moments(c)
+        # cX = int(M["m10"] / M["m00"])
+        
+        # cY = int(M["m01"] / M["m00"])
+        
+        rect = cv2.minAreaRect(c)
+        
+        rotation_angle = round(rect[2],2)
+        
+        center_y,center_x = rect[0]
+        w,h = rect[1]
+        w = int(w)
+        h = int(h)
+        # x=int(x)
+        # y = int(y)
+        
+        # warped = img.copy()
+        # if rotation_angle>0:
+        box = cv2.boxPoints(rect)
+        box = np.int0(box)
+        
+       
+        print(box[0][1])
+        
+        # print(cX)
+        # print(box[0][0])
+        # print(self.count)
+        # distance = self.distance_to_camera(KNOWN_WIDTH, FOCAL_LENGTH, w)
+        # print(distance)
+
+        # mask = cv2.drawContours(img,[box],0,(0,255,0),2)
+        # mask = cv2.circle(mask, (x, y), 7, (255, 255, 255), -1)
+        
+        # img = img[int(y):int(y+h),0:int(x+w)]
+        src_pts = box.astype("float32")
+        dst_pts = np.array([[0, h-1],
+                            [0, 0],
+                            [w-1, 0],
+                            [w-1, h-1],
+                            ], dtype="float32")
+        M = cv2.getPerspectiveTransform(src_pts, dst_pts)
+        warped = cv2.warpPerspective(img, M, (w, h))
+        if warped.shape[0]<warped.shape[1]:
+            warped = cv2.rotate(warped, cv2.ROTATE_90_COUNTERCLOCKWISE)
+        img_name = "{}_raw_masked.png".format(self.count)
+        cv2.imwrite(img_name, mask)
+
+        height = warped.shape[0]
+        width = warped.shape[1]
+        if width < 200:
+            if height > 445:
+                height=height//3
+
+            # else:
+            #     height=(height//3)*2
+            warped = warped[0:int(height),0:width]
+        # else:
+        #     if height > 570:
+        #         height = height//2 +50
+        # bottom_y = box[0][1]
+        # bottom_x =box[0][0]
+        # dist_1 = self.calculate_length(box[0],box[1])
+        # print('legt')
+        # print(dist_1)
+
+        # if dist_1 == h:
+        #     top_x = box[1][1]
+        #     top_y = box[1][0]
+        # else:
+        #     top_x = box[2][1]
+        #     top_y = box[2][0]
+        # print(top_y)
+        # print(h)
+        # print(top_y+h)
+        # a = img[int(top_y):int(bottom_y),int(top_x):int(bottom_x)]
+        # print(a.shape)
+
+        
+        return warped
     def smoothing(self,img):
         return cv2.GaussianBlur(img,(5,5),0)
 
@@ -518,7 +559,8 @@ class PreprocessImage(object):
         return fsrcnn_metrics_scores,edsr_metrics_scores,esgran_metrics_scores
     
     def super_resolution(self,img,img_path,base):
-        img = self.resize_image(img,60)
+        img_ref = img.copy()
+        img = self.resize_image(img,30)
         img_name = base+ "_resize_{}.png".format(self.count)
         cv2.imwrite(img_name, img)
 
@@ -565,7 +607,7 @@ class PreprocessImage(object):
         
         
         
-        fsrcnn,edsr,esgran = self.evaluate_image(img_path,img,img_es,img_fr,img_e)
+        fsrcnn,edsr,esgran = self.evaluate_image(img_path,img_ref,img_es,img_fr,img_e)
 
         res ={'file' : base,
                         'fsrcnn_time':end_f-start_time_f,
@@ -585,9 +627,9 @@ class PreprocessImage(object):
         # img_e = self.to_gray(img_e)
         # img_es = self.to_gray(img_es)
 
-        # img_fr = self.normalize_image(img_fr)
-        # img_e = self.normalize_image(img_e)
-        # img_es = self.normalize_image(img_es)
+        img_fr = self.normalize_image(img_fr)
+        img_e = self.normalize_image(img_e)
+        img_es = self.normalize_image(img_es)
 
         
 
@@ -603,9 +645,9 @@ class PreprocessImage(object):
         img_e = self.automatic_brightness_and_contrast(img_e)
         img_es = self.automatic_brightness_and_contrast(img_es)
 
-        img_fr = self.increase_contrast(img_fr)
-        img_e = self.increase_contrast(img_e)
-        img_es = self.increase_contrast(img_es)
+        img_fr = self.increase_contrast_sr(img_fr)
+        img_e = self.increase_contrast_sr(img_e)
+        img_es = self.increase_contrast_sr(img_es)
         
         
         
@@ -619,14 +661,14 @@ class PreprocessImage(object):
         
         
         
-        img_name = base + "_esgran_sr{}.png".format(self.count)
+        img_name = base + "_thesgran_sr{}.png".format(self.count)
         filename = os.path.join(TEMP_PATH,img_name)
         cv2.imwrite(filename, img_es)
         cv2.imwrite(img_name, img_es)
 
         # img_fr,maxima,minima = self.detect_ridges(img_fr,3)
         img_fr = self.adaptive_threshold(img_fr)
-        img_name = base + "_fsrcnn_sr_{}.png".format(self.count)
+        img_name = base + "_thfsrcnn_sr_{}.png".format(self.count)
         filename = os.path.join(TEMP_PATH,img_name)
         cv2.imwrite(filename, img_fr)
         cv2.imwrite(img_name, img_fr)
@@ -638,19 +680,25 @@ class PreprocessImage(object):
         
         
         img_e = self.adaptive_threshold(img_e)
-        img_name = base+ "_edsr_sr_{}.png".format(self.count)
+        img_name = base+ "_thedsr_sr_{}.png".format(self.count)
         filename = os.path.join(TEMP_PATH,img_name)
         cv2.imwrite(filename, img_e)
         cv2.imwrite(img_name, img_e)
 
         return res
 
-
+    def distance_to_camera(self,knownWidth, focalLength, perWidth):
+	# compute and return the distance from the maker to the camera
+	    return (knownWidth * focalLength) / perWidth
     # preprosess all the image:
 
+    def calculate_length(self,x,y):
+        return np.sqrt(np.sum((x-y)**2))
 
+            
     def preprocess_image(self,img_path,base):
         print(base)
+        print(self.count)
         res={}
         img = cv2.imread(img_path)
         # img = cv2.flip(img,1)
@@ -670,7 +718,7 @@ class PreprocessImage(object):
             img_copy = img.copy()
        
 
-            finger_masking = self.segment_finger(img_copy)
+            finger_masking = self.segment_finger(img_copy,False)
             
             
 
@@ -681,8 +729,11 @@ class PreprocessImage(object):
             
 
             img = self.masking_finger(img,finger_masking)
-            # img_name = img_path + "_masked.png"
-            # cv2.imwrite(img_name, img)
+            
+            img = self.crop_finger_tip(img)
+            img_name = img_path + "_masked.png"
+            cv2.imwrite(img_name, img)
+            # self.count+=1
             
 
             # return
@@ -696,12 +747,14 @@ class PreprocessImage(object):
         # cv2.imwrite(img_name, img)
         img = self.to_gray(img)
         img_ref = img.copy()
-
-        res = self.super_resolution(img_ref,img_path,base)
+        
+        # res = self.super_resolution(img_ref,img_path,base)
         
         
         
-        # self.gamma_correction(img)
+        # img = self.gamma_correction(img)
+        # img_name = img_path + "_lightcorrection_{}.png".format(self.count)
+        # cv2.imwrite(img_name, img)
         img = self.normalize_image(img)
         img = self.smoothing(img)
 
@@ -795,7 +848,7 @@ if __name__ == "__main__":
        
         start_time = time.time()
         preproses_res = p.preprocess_image(path,base)
-        # res = res.append(preproses_res,ignore_index=True)
+        res = res.append(preproses_res,ignore_index=True)
         print("total execution : ---  %s seconds ---" % (time.time() - start_time))
         
     res.to_excel('./sr.xlsx',sheet_name='SR')
