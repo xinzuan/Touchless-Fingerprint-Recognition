@@ -25,6 +25,8 @@ from imagequality import ImageQualityMetrics
 from optparse import OptionParser
 
 TEMP_PATH ='/home/vania/TA/Implement/Touchless-Fingerprint-Recognition/backend/complete/src/resources/temp/'
+SAVE_PATH ='/home/vania/TA/Implement/Touchless-Fingerprint-Recognition/pygame-t/res_preprocess'
+DB_PATH ='/home/vania/TA/Implement/Touchless-Fingerprint-Recognition/backend/complete/src/resources/fingerprints/'
 # FSRCNN_PATH ='/home/vania/TA/Implement/Touchless-Fingerprint-Recognition/models/FSRCNN_x4.pb'
 # EDSR_PATH ='/home/vania/TA/Implement/Touchless-Fingerprint-Recognition/models/EDSR_x4.pb'
 KNOWN_DISTANCE = 16 #cm
@@ -344,27 +346,15 @@ class PreprocessImage(object):
         img = self.smoothing(img)
         
 
-        # imgYCrCb = cv2.cvtColor(img, cv2.COLOR_RGB2YCrCb)
-        # #Splitting into YCbCr
-        # Y, Cb, Cr = cv2.split(imgYCrCb)
-
-        # img_merge =cv2.cvtColor(img_merge,cv2.COLOR_YCrCb2RGB)
-        # img_merge = self.to_gray(img_merge)
         img = self.to_gray(img)
         binary_mask = self.otsu_thresholding(img)
-        # # copy the image to create a binary mask later
-        # binary_mask = np.copy(imgYCrCb)
+        img_name = "{}_otsu_masked.png".format(self.count)
+        filename = os.path.join(SAVE_PATH,img_name)
+        cv2.imwrite(filename, binary_mask)
 
 
-        # for i in range(imgYCrCb.shape[0]):
-        #     for j in range(imgYCrCb.shape[1]):
-            
-        #         if Cr[i, j] > 133 and Cr[i,j] <180 and Cb[i,j] > 77 and Cb[i,j] < 127:
-        #             # paint it white (finger region)
-        #             binary_mask[i, j] = [255, 255, 255]
-        #         else:
-        #             # paint it black 
-        #             binary_mask[i, j] = [0, 0, 0]
+
+
         
         mask = binary_mask.copy()
         # mask = self.to_gray(mask)
@@ -380,6 +370,7 @@ class PreprocessImage(object):
 
             mask = np.zeros(gray.shape, dtype="uint8")
             mask = cv2.drawContours(mask, [c], -1, 255, -1)
+           
 
        
 
@@ -401,26 +392,20 @@ class PreprocessImage(object):
         
         cY = int(M["m01"] / M["m00"])
         
-        # draw the contour and center of the shape on the image
-        # cv2.drawContours(image, [c], -1, (0, 255, 0), 2)
+        temp = mask.copy()
+        
+        temp =cv2.circle(temp,(cX, cY), 7, (23, 20, 120), -1)
+        temp =cv2.putText(temp, "center", (cX - 20, cY - 20),
+        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (23, 20, 120), 2)
+        img_name = "find_center.png".format(self.count)
+        filename = os.path.join(SAVE_PATH,img_name)
+        cv2.imwrite(filename, temp)
 
         mask[cY+100:bottomy+1,topx:bottomx] = 0.0
 
-        # mask_temp = mask.copy()
+       
 
-        # mask_temp = mask_temp[int(topy):int(cY+100), int(topx):int(bottomx)]
-        # x,y,w,h = cv2.boundingRect(mask_temp)
-        # # print(w)
-        # if w>=320: # thumb
-        #     mask = mask[int(topy):int(cY+100), int(topx):int(bottomx)]
-        
-        #     img = img[int(topy):int(cY+100), int(topx):int(bottomx)]
-            
-        # else: #not thumb
-        #     mask = mask[int(topy):int(cY-110), int(topx):int(bottomx)]
-        
-        #     img = img[int(topy):int(cY-110), int(topx):int(bottomx)]
-        
+      
 
       
         mask_result = cv2.bitwise_and(img, img, mask=mask)
@@ -461,8 +446,12 @@ class PreprocessImage(object):
         # print(self.count)
         # distance = self.distance_to_camera(KNOWN_WIDTH, FOCAL_LENGTH, w)
         # print(distance)
-
-        # mask = cv2.drawContours(img,[box],0,(0,255,0),2)
+        a = img.copy()
+        a = cv2.drawContours(a,[box],0,(0,255,0),2)
+        img_name = "{}_draw_rect.png".format(self.count)
+        filename = os.path.join(SAVE_PATH,img_name)
+        cv2.imwrite(filename, a)
+       
         # mask = cv2.circle(mask, (x, y), 7, (255, 255, 255), -1)
         
         # img = img[int(y):int(y+h),0:int(x+w)]
@@ -474,43 +463,35 @@ class PreprocessImage(object):
                             ], dtype="float32")
         M = cv2.getPerspectiveTransform(src_pts, dst_pts)
         warped = cv2.warpPerspective(img, M, (w, h))
+        img_name = "{}_transform_result.png".format(self.count)
+        filename = os.path.join(SAVE_PATH,img_name)
+        cv2.imwrite(filename, warped)
+
         if warped.shape[0]<warped.shape[1]:
             warped = cv2.rotate(warped, cv2.ROTATE_90_COUNTERCLOCKWISE)
-        img_name = "{}_raw_masked.png".format(self.count)
-        cv2.imwrite(img_name, mask)
+        img_name = "{}_rotated_result.png".format(self.count)
+        filename = os.path.join(SAVE_PATH,img_name)
+        cv2.imwrite(filename, warped)
 
+        
         height = warped.shape[0]
         width = warped.shape[1]
+        need_sr = False
         if width < 200:
             if height > 445:
                 height=height//3
 
-            # else:
-            #     height=(height//3)*2
-            warped = warped[0:int(height),0:width]
-        # else:
-        #     if height > 570:
-        #         height = height//2 +50
-        # bottom_y = box[0][1]
-        # bottom_x =box[0][0]
-        # dist_1 = self.calculate_length(box[0],box[1])
-        # print('legt')
-        # print(dist_1)
+            else:
+                height=(height//3)*2
+            warped = warped[0:int(height),0:int(width)]
+            need_sr = True
+            
 
-        # if dist_1 == h:
-        #     top_x = box[1][1]
-        #     top_y = box[1][0]
-        # else:
-        #     top_x = box[2][1]
-        #     top_y = box[2][0]
-        # print(top_y)
-        # print(h)
-        # print(top_y+h)
-        # a = img[int(top_y):int(bottom_y),int(top_x):int(bottom_x)]
-        # print(a.shape)
+        # warped = warped[1:int(height),10:int(width-10)]
+
 
         
-        return warped
+        return warped,need_sr
     def smoothing(self,img):
         return cv2.GaussianBlur(img,(5,5),0)
 
@@ -562,7 +543,9 @@ class PreprocessImage(object):
         img_ref = img.copy()
         img = self.resize_image(img,30)
         img_name = base+ "_resize_{}.png".format(self.count)
-        cv2.imwrite(img_name, img)
+        filename = os.path.join(SAVE_PATH,img_name)
+        cv2.imwrite(filename, img)
+
 
       
 
@@ -579,7 +562,9 @@ class PreprocessImage(object):
        
         
         img_name = base + "_fsrcnn_sr_{}.png".format(self.count)
-        cv2.imwrite(img_name, img_fr)
+        filename = os.path.join(SAVE_PATH,img_name)
+        cv2.imwrite(filename, img_fr)
+
 
 
         
@@ -591,7 +576,8 @@ class PreprocessImage(object):
        
        
         img_name = base + "_edsr_sr_{}.png".format(self.count)
-        cv2.imwrite(img_name, img_e)
+        filename = os.path.join(SAVE_PATH,img_name)
+        cv2.imwrite(filename, img_e)
 
         start_time = time.time()
         img_es = self.esgran_sr.upsample_image(sr3_img)
@@ -600,7 +586,8 @@ class PreprocessImage(object):
        
         
         img_name = base + "_esgran_sr_{}.png".format(self.count)
-        cv2.imwrite(img_name, img_es)
+        filename = os.path.join(SAVE_PATH,img_name)
+        cv2.imwrite(filename, img_es)
 
         
         
@@ -623,9 +610,9 @@ class PreprocessImage(object):
                         'esgran_MSE':esgran[1],
                         'esgran_SSIM':esgran[2]}
                         
-        # img_fr = self.to_gray(img_fr)
-        # img_e = self.to_gray(img_e)
-        # img_es = self.to_gray(img_es)
+        img_fr = self.to_gray(img_fr)
+        img_e = self.to_gray(img_e)
+        img_es = self.to_gray(img_es)
 
         img_fr = self.normalize_image(img_fr)
         img_e = self.normalize_image(img_e)
@@ -640,10 +627,7 @@ class PreprocessImage(object):
         img_e = self.smoothing(img_e) 
         img_es = self.smoothing(img_es) 
 
-        # # img_es = self.smoothing(img_es)
-        img_fr = self.automatic_brightness_and_contrast(img_fr)
-        img_e = self.automatic_brightness_and_contrast(img_e)
-        img_es = self.automatic_brightness_and_contrast(img_es)
+
 
         img_fr = self.increase_contrast_sr(img_fr)
         img_e = self.increase_contrast_sr(img_e)
@@ -662,17 +646,21 @@ class PreprocessImage(object):
         
         
         img_name = base + "_thesgran_sr{}.png".format(self.count)
-        filename = os.path.join(TEMP_PATH,img_name)
-        cv2.imwrite(filename, img_es)
-        cv2.imwrite(img_name, img_es)
+        esrgan_res = os.path.join(TEMP_PATH,img_name)
+        cv2.imwrite(esrgan_res, img_es)
+
+        # filename = os.path.join(SAVE_PATH,img_name)
+        # cv2.imwrite(filename, img_es)
 
         # img_fr,maxima,minima = self.detect_ridges(img_fr,3)
         img_fr = self.adaptive_threshold(img_fr)
         img_name = base + "_thfsrcnn_sr_{}.png".format(self.count)
-        filename = os.path.join(TEMP_PATH,img_name)
-        cv2.imwrite(filename, img_fr)
-        cv2.imwrite(img_name, img_fr)
+        fsrcnn_res = os.path.join(TEMP_PATH,img_name)
+        cv2.imwrite(fsrcnn_res, img_fr)
 
+        # filename = os.path.join(SAVE_PATH,img_name)
+        # cv2.imwrite(filename, img_fr)
+        
        
         
         
@@ -681,11 +669,12 @@ class PreprocessImage(object):
         
         img_e = self.adaptive_threshold(img_e)
         img_name = base+ "_thedsr_sr_{}.png".format(self.count)
-        filename = os.path.join(TEMP_PATH,img_name)
-        cv2.imwrite(filename, img_e)
-        cv2.imwrite(img_name, img_e)
+        edsr_res = os.path.join(TEMP_PATH,img_name)
+        cv2.imwrite(edsr_res, img_e)
+        # filename = os.path.join(SAVE_PATH,img_name)
+        # cv2.imwrite(filename, img_e)
 
-        return res
+        return fsrcnn_res,edsr_res,esrgan_res
 
     def distance_to_camera(self,knownWidth, focalLength, perWidth):
 	# compute and return the distance from the maker to the camera
@@ -695,8 +684,8 @@ class PreprocessImage(object):
     def calculate_length(self,x,y):
         return np.sqrt(np.sum((x-y)**2))
 
-            
-    def preprocess_image(self,img_path,base):
+
+    def preprocess_image(self,img_path,base=''):
         print(base)
         print(self.count)
         res={}
@@ -712,6 +701,10 @@ class PreprocessImage(object):
             middle = width // 2
 
             img = img[1:max_h, middle-350:width]
+            # img_name = img_path + "_crop-1.png"
+            # filename = os.path.join(SAVE_PATH,img_name)
+            # cv2.imwrite(filename, img)
+
         
 
 
@@ -719,6 +712,9 @@ class PreprocessImage(object):
        
 
             finger_masking = self.segment_finger(img_copy,False)
+            # img_name = base + "_segmen_finger.png"
+            # filename = os.path.join(SAVE_PATH,img_name)
+            # cv2.imwrite(filename, finger_masking)
             
             
 
@@ -729,10 +725,15 @@ class PreprocessImage(object):
             
 
             img = self.masking_finger(img,finger_masking)
+            # img_name = base + "_masking_finger.png"
+            # filename = os.path.join(SAVE_PATH,img_name)
+            # cv2.imwrite(filename, img)
             
-            img = self.crop_finger_tip(img)
-            img_name = img_path + "_masked.png"
-            cv2.imwrite(img_name, img)
+            
+            img,need_sr = self.crop_finger_tip(img)
+            # img_name = base + "_crop_finger.png"
+            # filename = os.path.join(SAVE_PATH,img_name)
+            # cv2.imwrite(filename, img)
             # self.count+=1
             
 
@@ -745,110 +746,143 @@ class PreprocessImage(object):
         
         # img_name = img_path + "_maskedresult_{}.png".format(self.count)
         # cv2.imwrite(img_name, img)
-        img = self.to_gray(img)
+        
         img_ref = img.copy()
         
-        # res = self.super_resolution(img_ref,img_path,base)
+        # if need_sr:
+        fsrcnn_res,edsr_res,esrgan_res = self.super_resolution(img_ref,img_path,base)
         
         
-        
+        img = self.to_gray(img)
         # img = self.gamma_correction(img)
         # img_name = img_path + "_lightcorrection_{}.png".format(self.count)
         # cv2.imwrite(img_name, img)
         img = self.normalize_image(img)
+        # img_name = base + "_normalize_{}.png".format(self.count)
+        # filename = os.path.join(SAVE_PATH,img_name)
+        # cv2.imwrite(filename, img)
+
+##  without smoothing region
+        # img_2 = img.copy()
+
+        # img_2 = self.increase_contrast(img_2,clipLimit=clipLimit,size=size)
+        # img_name = base + "_withoutsmoothingincreasecontrast_{}.png".format(self.count)
+        # filename = os.path.join(SAVE_PATH,img_name)
+        # cv2.imwrite(filename, img)
+
+        # img_2 = self.adaptive_threshold(img_2)
+        # img_name = base + "_threswithout_smoothing_{}.png".format(self.count)
+        
+        # filename = os.path.join(TEMP_PATH,img_name)
+        # cv2.imwrite(filename, img_2)
+        # filename = os.path.join(SAVE_PATH,img_name)
+        # cv2.imwrite(filename, img)
+        
+##  end region
+
         img = self.smoothing(img)
+        # img_name = base + "_smoothing_{}.png".format(self.count)
+        # filename = os.path.join(SAVE_PATH,img_name)
+        # cv2.imwrite(filename, img)
 
         
         
         
         img = self.increase_contrast(img,clipLimit=clipLimit,size=size)
+        # img_name = base + "_increasecontrast_{}.png".format(self.count)
+        # filename = os.path.join(SAVE_PATH,img_name)
+        # cv2.imwrite(filename, img)
         
         
-
-
-        
-        
-        
-
-
-
-        
-        
-        # img = self.gamma_correction(img)
-        #sblm dan sesudah smooth hasilnya beda, igt buat perbedaan,tambahan step
         
 
 
         
         
         img_x = img.copy()
-        # img_x,maxima,minima = self.detect_ridges(img_x,3)
-        
-        # img = cv2.Sobel(img,cv2.CV_64F,1,0,ksize=11)
-        # img_name = "_sobel_ic_{}.png".format(self.count)
-        # filename = os.path.join(TEMP_PATH,img_name)
-        # cv2.imwrite(filename, img)
-        # cv2.imwrite(img_name,img)
-        
+    
 
-        # img_x = fingerprint_enhancer.enhance_Fingerprint(img_x)
-        # kernel = np.ones((5,5),np.uint8)
-        # img_x = cv2.morphologyEx(img_x, cv2.MORPH_CLOSE, kernel)
-
-
+       
        
         img_x = self.adaptive_threshold(img_x)
         img_name = base + "_thres_{}.png".format(self.count)
         
         filename = os.path.join(TEMP_PATH,img_name)
         cv2.imwrite(filename, img_x)
-        cv2.imwrite(img_name,img_x)
+        # filename = os.path.join(SAVE_PATH,img_name)
+        # cv2.imwrite(filename, img)
 
-
+        
         
         
         
 
        
         self.count+=1
+        print('done')
     
-        return res
+        return filename,fsrcnn_res,edsr_res,esrgan_res
 
-def get_matcher(image):
-    url = 'http://localhost:8080/match'
-    user_inbound = {'pathimage': image,'name':""}
-    
-    
-    try:
-        request = requests.get(url, json = user_inbound)
-        result = request.json()
-        info =['Nama : ' + result['data']['name'], 'Hasil penilaian : {:.2f}'.format(result['data']['score'])]
+    def get_matcher(self,image):
+        url = 'http://localhost:8080/match'
+        user_inbound = {'pathimage': image,'name':""}
         
-        return result
-    except Exception as e: 
-        print(e)
-        pass
-if __name__ == "__main__":
-    
-    p = PreprocessImage()
-    # test_img_folder= "try_thumb/img_16.png"
-    # p.preprocess_image(test_img_folder,"img_16")
-    # test_img_folder = args[0]
-    test_img_folder= "try_index/*"
-    
-    # idx=0
-
-    
-
-    res =pd.DataFrame(columns=['file', 'fsrcnn_time','edsr_time','esgran_time','fsrcnn_PSNR','fsrcnn_MSE','fsrcnn_SSIM','edsr_PSNR','edsr_MSE','edsr_SSIM','esgran_PSNR','esgran_MSE','esgran_SSIM'])
-    for path in glob.glob(test_img_folder):
         
-        base = osp.splitext(osp.basename(path))[0]
+        try:
+            request = requests.get(url, json = user_inbound)
+            result = request.json()
+            
+            # info =['Nama : ' + result['data']['name'], 'Hasil penilaian : {:.2f}'.format(result['data']['score'])]
+            
+            return result
+        except Exception as e: 
+            return False
+    
+    def add_new_image(self,image_path,name):
+        
+        img_name = name + ".png"
+        filename = os.path.join(DB_PATH,img_name)
+        
+        if os.path.isfile(filename):
+            return False
+        else:
+            
+            url = 'http://localhost:8080/addUser'
+            user_inbound = {'pathimage': image_path,'name':name}
+            try:
+                request = requests.post(url, json = user_inbound)
+                result = request.json()
+              
+                if result['status'] == 'OK':
+                    img = cv2.imread(image_path)
+                    cv2.imwrite(filename, img)
+                    return result
+                else:
+                    return False
+                
+                
+                
+            except Exception as e: 
+                return False
+        
+# if __name__ == "__main__":
+    
+#     p = PreprocessImage()
+
+#     test_img_folder= "try-mix/*"
+
+
+    
+
+#     res =pd.DataFrame(columns=['file', 'fsrcnn_time','edsr_time','esgran_time','fsrcnn_PSNR','fsrcnn_MSE','fsrcnn_SSIM','edsr_PSNR','edsr_MSE','edsr_SSIM','esgran_PSNR','esgran_MSE','esgran_SSIM'])
+#     for path in glob.glob(test_img_folder):
+        
+#         base = osp.splitext(osp.basename(path))[0]
    
        
-        start_time = time.time()
-        preproses_res = p.preprocess_image(path,base)
-        res = res.append(preproses_res,ignore_index=True)
-        print("total execution : ---  %s seconds ---" % (time.time() - start_time))
+#         start_time = time.time()
+#         preproses_res = p.preprocess_image(path,base)
+#         res = res.append(preproses_res,ignore_index=True)
+#         print("total execution : ---  %s seconds ---" % (time.time() - start_time))
         
-    res.to_excel('./sr.xlsx',sheet_name='SR')
+#     res.to_excel('./sr.xlsx',sheet_name='SR')

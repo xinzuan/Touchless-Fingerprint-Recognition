@@ -4,7 +4,7 @@ from pygame.sprite import Sprite
 from pygame.rect import Rect
 from enum import Enum
 from pygame.sprite import RenderUpdates
-from elements import InputBox,UIElement,ImageResult
+from elements import InputBox,UIElement,ImageResult,LoadingBar
 from state import AppState
 from ipwebcam import IPWEBCAM
 from user import User
@@ -13,8 +13,14 @@ from preprocess import PreprocessImage
 
 import tkinter
 from tkinter import *
-from tkinter import filedialog, messagebox
+from tkinter import filedialog, messagebox,simpledialog
 from tkinter.messagebox import *
+
+import itertools
+import threading
+import time
+import sys
+from queue import Queue
 
 BLUE = (106, 159, 181)
 WHITE = (255, 255, 255)
@@ -32,7 +38,16 @@ barSize     = (200, 20)
 borderColor = (0, 0, 0)
 barColor    = (0, 128, 0)
 
+TEMP_PATH ='/home/vania/TA/Implement/Touchless-Fingerprint-Recognition/backend/complete/src/resources/temp/'
 
+def animate():
+    for c in itertools.cycle(['|', '/', '-', '\\']):
+        if done:
+            break
+        sys.stdout.write('\rloading ' + c)
+        sys.stdout.flush()
+        time.sleep(0.1)
+    sys.stdout.write('\rDone!     ')
 
 def prompt_file():
     """Create a Tk file dialog and cleanup when finished"""
@@ -122,38 +137,54 @@ def capture_screen(screen, ipwebcam):
     
     return app_loop(screen, buttons,[],ipwebcam)
 
-def result_screen(screen,image_result):
-    return_btn = UIElement(
-        center_position=(140, 570),
-        font_size=20,
-        bg_rgb=BLUE,
-        text_rgb=WHITE,
-        text="Home",
-        action=AppState.HOME,
-    )
-
-    name_label = UIElement(
-        center_position=(PYGAME_WIDTH//8-SPACE, PYGAME_HEIGHT//8+SPACE+BOX_HEIGHT_SIZE//2),
-        font_size=20,
-        bg_rgb=BGCOLOR,
-        text_rgb=WHITE,
-        text="Nama: ",
-        action=None,
-        hover= False
-    )
-
-    buttons = RenderUpdates(return_btn,name_label)
+def result_screen(screen,image_result=[],progressing=True):
     
-    return app_loop(screen,buttons,[],None,image_result)
 
-def app_loop(screen, buttons,input_boxes=[],ipwebcam = None,results=None):
+    if not progressing:
+        return_btn = UIElement(
+            center_position=(140, 570),
+            font_size=20,
+            bg_rgb=BLUE,
+            text_rgb=WHITE,
+            text="Home",
+            action=AppState.HOME,
+        )
+        buttons = RenderUpdates(return_btn)
+        return app_loop(screen=screen,buttons=buttons,results=image_result)
+    else:
+        loading = LoadingBar(progress=1)
+        print('a')
+        return app_loop(screen=screen,loading=loading)
+
+    
+    
+    
+# def loading_screen(screen,a):
+#     # return_btn = UIElement(
+#     #         center_position=(140, 570),
+#     #         font_size=20,
+#     #         bg_rgb=BLUE,
+#     #         text_rgb=WHITE,
+#     #         text="Home",
+#     #         action=AppState.HOME,
+#     #     )
+
+#     # buttons = RenderUpdates(return_btn)
+#     loading = LoadingBar(progress=a)
+#     # pygame.draw.rect(screen, borderC, (*pos, *size), 1)
+#     # innerPos  = (pos[0]+3, pos[1]+3)
+#     # innerSize = ((size[0]-6) * progress, size[1]-6)
+#     # pygame.draw.rect(screen, barC, (*innerPos, *innerSize))
+#     return app_loop(screen=screen,loading=loading)
+
+def app_loop(screen, buttons=[],input_boxes=[],ipwebcam = None,origins=None,results=None,loading=None):
     """ Handles game loop until an action is return by a button in the
         buttons sprite renderer.
     """
     
-    max_a = 100
-    a = 0
+
     text = 'No file selected'
+    is_upload =False
     
     while True:
         mouse_up = False
@@ -182,7 +213,7 @@ def app_loop(screen, buttons,input_boxes=[],ipwebcam = None,results=None):
         # DrawBar(screen,barPos, barSize, borderColor, barColor, a/max_a)
         for button in buttons:
             ui_action = button.update(pygame.mouse.get_pos(), mouse_up)
-            # print(button.text)
+           
             if ui_action is not None:
                 if ui_action == AppState.CAPTURE:
                     temp = []
@@ -195,25 +226,30 @@ def app_loop(screen, buttons,input_boxes=[],ipwebcam = None,results=None):
                         return AppState.HOME,temp
                 elif ui_action == AppState.UPLOAD:
                     f = prompt_file()
+                    # if text:
+                    #     return AppState.UPLOAD,f
                     if f:
                         
                         # file_msg.set_msg(f)
                         text = f
-                        a+=1
+                 
                         # updatetext(screen,text,font2)
                         #DrawBar(screen,barPos, barSize, borderColor, barColor, a/max_a)
-                        
+                        is_upload = True
                        
                         continue
                         
                         # return AppState.UPLOAD,f
                     else:
                         return AppState.HOME,[]
+                    
                 return ui_action
-        
-        buttons.draw(screen)
+        if buttons:
+            buttons.draw(screen)
         updatetext(screen,text,font2)
-        
+        if is_upload: 
+            # print(text)
+            return AppState.UPLOAD,text
 
         if ipwebcam:
             ipwebcam.draw(screen)
@@ -228,25 +264,24 @@ def app_loop(screen, buttons,input_boxes=[],ipwebcam = None,results=None):
                   
                     return ui_action[0],True,ui_action[1]
         if results:
-            results.draw(screen)     
+            for i in results:
+                i.draw(screen) 
+        if loading:
+            loading.draw(screen) 
+            
+            loading.update()
+            time.sleep(0.5)
+            
+            
+        #loading.update()    
         # pygame.display.set_caption(f"Frames: File: {MSG}")
         pygame.display.flip()
-def get_matcher(image):
-    url = 'http://localhost:8080/match'
-    user_inbound = {'pathimage': image,'name':""}
-    
-    
-    try:
-        request = requests.get(url, json = user_inbound)
-        result = request.json()
 
-        return result
-        # info =['Nama : ' + result['data']['name'], 'Hasil penilaian : {:.2f}'.format(result['data']['score'])]
-        
-        
-    except Exception as e: 
-        return e
-        pass
+def run_preprocess(image):
+    # img_res,fsrcnn_res,edsr_res,esrgan_res = preprocess.preprocess_image(image)
+    return preprocess.preprocess_image(image)
+
+
 def main():
     pygame.init()
 
@@ -259,32 +294,23 @@ def main():
     global ip_host_port
     
     global result
+    on_process = True
+    global preprocess
+    preprocess = PreprocessImage()
     
 
  
     a =0
 
     while True:
+        # print(app_state)
+        # print(text)
         if app_state == AppState.HOME:
 
             app_state,ip_host_port = home_screen(screen,font)
-            
-            max_a = 100
-            while app_state == AppState.UPLOAD:
-                if app_state == AppState.CAPTURE:
-                    print(text)
-                
-                print('a')
-                
-                # messagebox.showerror("Error",msg)
-                
-                # preprocess = PreprocessImage()
-                # img_res = preprocess.preprocess_image(file_msg.text)
-                # image_result = ImageResult(img_res,PYGAME_WIDTH//4,PYGAME_HEIGHT//2)
-                # app_state = result_screen(screen,image_result)
-                
-            
 
+                
+        
 
         if app_state == AppState.CAPTURE:
 
@@ -303,19 +329,124 @@ def main():
                 # pass
 
 
-        # if app_state == AppState.UPLOAD:
-        #     print('here')
+        if app_state == AppState.UPLOAD:
+            # app_state,ip_host_port = result(screen,font)
+            # print('Loading...')
+            # with concurrent.futures.ThreadPoolExecutor() as executor:
+            #     print('aa')
+            #     future = executor.submit(run_preprocess, ip_host_port)
+
+            #     img_res,fsrcnn_res,edsr_res,esrgan_res = future.result()
+            #     print(img_res)
+            
+            que = Queue()
+
+            t = threading.Thread(target=lambda q, arg1: q.put(run_preprocess(arg1)), args=(que, ip_host_port))
+            
+            t.start()
+            max_a = 100
+            a = 0
+            
+            # loading = LoadingBar(progress=1)
+            # loading.draw(screen)
+            # app_state = result_screen(screen,progressing=True,loading=loading)
+            # while t.isAlive():
+                
+            #     # loading.update()
+            #     print('aa')
+            #     app_state = result_screen(screen,progressing=t.isAlive())
+               
+            #     if not t.isAlive():
+            #         break
+            #     # print('a')
+            # # else:
+            # #     app_state = result_screen(screen,progressing=False)
+            # #     pass
+            # app_state = result_screen(screen,progressing=True)
+            t.join()
+            
+            img_res,fsrcnn_res,edsr_res,esrgan_res = que.get()
+            
+            
+                
+            # print('a')
+            
+            
+            if img_res:
+                
+                probe = preprocess.get_matcher(img_res)
+                if not probe:
+                    top = tkinter.Tk()
+                    top.withdraw()
+                    messagebox.showerror(title='Error', message='Cannot connect to server')
+                    top.destroy()
+                    app_state = AppState.HOME
+                else:
+                    if probe['data'] is not None:
+                        top = tkinter.Tk()
+                        top.withdraw()  # hide window
+                        
+                        messagebox.showinfo(title='Verification', message='Hello, '+probe['data']['name'])
+                        top.destroy()
+                        images =[]
+                        image_origin = ImageResult(ip_host_port,PYGAME_WIDTH//5,PYGAME_HEIGHT//3,x=250,y=50)
+                        image_result = ImageResult(img_res,PYGAME_WIDTH//5,PYGAME_HEIGHT//3,x = 450,y=50)
+                        # fsrcnn_res = ImageResult(img_res,PYGAME_WIDTH//5,PYGAME_HEIGHT//3,x = 50,y=300)
+                        # edsr_res = ImageResult(img_res,PYGAME_WIDTH//5,PYGAME_HEIGHT//3,x = 350,y=300)
+                        # esrgan_res = ImageResult(img_res,PYGAME_WIDTH//5,PYGAME_HEIGHT//3,x = 450,y = 300)
+                        # images =[image_origin,image_result,fsrcnn_res,edsr_res,esrgan_res]
+                        images =[image_origin,image_result]
+                        app_state = result_screen(screen,images,progressing=False)
+                        
+                    else:
+                        top = tkinter.Tk()
+                        top.withdraw()
+                        answer = messagebox.askyesno(title='Confirmation',message='Want to retry?')
+                        top.destroy()
+                        if answer:
+                            app_state = AppState.HOME
+                        else:
+                            top = tkinter.Tk()
+                            top.withdraw()
+                            answer = messagebox.askyesno(title='Confirmation',message='Create new identity?')
+                            top.destroy()
+                            if answer:
+                                top = tkinter.Tk()
+                                top.withdraw()
+                                user_name = simpledialog.askstring(title="Test",
+                                    prompt="What's your name?:")
+                                top.destroy()
+                                success_save = preprocess.add_new_image(img_res,user_name)
+                                
+                                if success_save:
+                                    top = tkinter.Tk()
+                                    top.withdraw()
+                                    messagebox.showinfo(title='Success', message='Data created')
+                                    top.destroy()
+                                    app_state = AppState.HOME
+                                else:
+                                    top = tkinter.Tk()
+                                    top.withdraw()
+                                    messagebox.showerror(title='Error', message='Failed to create identity')
+                                    top.destroy()
+                                    app_state = AppState.HOME
+                            else:
+                                app_state = AppState.HOME
+                                # check it out
+                                # print("Hello", USER_INP)
+
+                                # app_state = AppState.HOME
+
+            
+
+
             
             
 
-        if app_state == AppState.RESULT:
+        # if app_state == AppState.RESULT:
 
-            preprocess = PreprocessImage()
-            img_res = preprocess.preprocess_image(result)
-            image_result = ImageResult(img_res,PYGAME_WIDTH//4,PYGAME_HEIGHT//2)
-            app_state = result_screen(screen,image_result)
-
-
+            
+            
         if app_state == AppState.QUIT:
             pygame.quit()
             return

@@ -74,11 +74,12 @@ public class UserDetailsController {
 
 			
 		}
-	@PostMapping
+	@PostMapping("/addUser")
   	public DataResponse<CandidatesCache> createUser(
       @RequestBody
           UserInbound userInbound
   ) {
+	System.out.println("try");
     return DataResponse.<CandidatesCache>dataBuilder()
         .data(userService.addUser(userInbound))
         .status(HttpStatus.OK.getReasonPhrase())
@@ -87,38 +88,3 @@ public class UserDetailsController {
   }
 }
 
-// 		String res ="Not matched";
-// try (
-//     OutputStream stream = new FileOutputStream("transparency.zip");
-//     FingerprintTransparency transparency = FingerprintTransparency.zip(stream)
-// ){
-// 		try{
-// 			FingerprintTemplate probe = new FingerprintTemplate(
-// 				new FingerprintImage()
-// 					.dpi(500)
-// 					.decode(Files.readAllBytes(Paths.get("/home/vania/Downloads/gs-rest-service-master/complete/src/resources/res.jpeg"))));
-// 			FingerprintTemplate candidate = new FingerprintTemplate(
-// 				new FingerprintImage()
-// 					.dpi(500)
-// 					.decode(Files.readAllBytes(Paths.get("/home/vania/Downloads/gs-rest-service-master/complete/src/resources/res2.jpg"))));
-			
-// 			double score = new FingerprintMatcher()
-// 				.index(probe)
-// 				.match(candidate);
-// 				boolean matches = score >= 40;
-// 				if (matches){
-// 					res = "Matched with scored " + Double. toString(score);
-// 				} else {
-// 				res = "Doesn't Matched with scored " + Double. toString(score);
-// 				}
-// 			return new UserDetails(counter.incrementAndGet(), String.format(template, res));
-		
-// 		} catch (Exception e ){
-// 			e.printStackTrace();
-// 			}
-// 		}catch(Exception e) {
-// 				e.printStackTrace();
-// 				// res.body(e.getMessage());
-// 		}
-		
-// 		 return new UserDetails(counter.incrementAndGet(), String.format(template, res));

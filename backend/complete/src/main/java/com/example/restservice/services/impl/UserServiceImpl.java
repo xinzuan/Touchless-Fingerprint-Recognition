@@ -24,6 +24,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+
+
+import org.apache.commons.io.FilenameUtils;
+
+
+
+
 @Service
 public class UserServiceImpl implements UserService {
 
@@ -64,13 +71,13 @@ public class UserServiceImpl implements UserService {
 			    e.printStackTrace();
 			}
       
-      double threshold = 40;
+      double threshold = 39.9;
      
       if (high >= threshold){
         User user = new User(match.getName(),high);
         return user;
       } else {
-        return new User("Unidentified",high);
+        return null;
       }
       
         
@@ -78,35 +85,28 @@ public class UserServiceImpl implements UserService {
   }
   @Override
   public CandidatesCache addUser(UserInbound userInbound) {
-        String fromFile = userInbound.getPathimage();
-        String toFile = "/home/mkyong/data/deploy/db.conf";
-
-        Path source = Paths.get(fromFile);
-        Path target = Paths.get(toFile);
-
-        try {
-
-            // rename or move a file to other path
-            // if target exists, throws FileAlreadyExistsException
-            Files.move(source, target);
-
-            // if target exists, replace it.
-            // Files.move(source, target, StandardCopyOption.REPLACE_EXISTING);
-
-            // multiple CopyOption
-            /*CopyOption[] options = { StandardCopyOption.REPLACE_EXISTING,
-                                StandardCopyOption.COPY_ATTRIBUTES,
-                                LinkOption.NOFOLLOW_LINKS };
-
-            Files.move(source, target, options);*/
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        CandidatesCache user = CandidatesCache.builder()
-            .name(userInbound.getName())
-            .build();
-        candidatesRepository.save(user);
-        return user;
+     
+      String path = userInbound.getPathimage();
+      // System.out.println(path);
+      try{
+          FingerprintTemplate template = new FingerprintTemplate(
+                        new FingerprintImage()
+                            .dpi(500)
+                            .decode(Files.readAllBytes(Paths.get(path))));
+          String name = userInbound.getName();
+                    // template harus di serialized menggunakan toByteArray() sebelum disimpan 
+                  
+                    
+          byte[] serialized = template.toByteArray();
+        
+          CandidatesCache candidate = new CandidatesCache(name,serialized);
+          
+          candidatesRepository.save(candidate);
+          
+          return candidate;
+        } catch (Exception e ){
+			    e.printStackTrace();
+          return null;
+			}
   }
 }
