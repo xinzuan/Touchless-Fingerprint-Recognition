@@ -7,14 +7,14 @@ import requests as r
 import os
 from state import AppState
 from preprocess import PreprocessImage
+from state import PATH
 
-SAVE_PATH = '/home/vania/TA/Implement/Touchless-Fingerprint-Recognition/pygame-t/img'
 class IPWEBCAM(object):
     def __init__(self,host='192.168.100.3',port='8080', width=400, height=400):
         self.url = "http://"+host+":"+port
         self.width = width
         self.height = height
-        self.img_counter =0
+        self.img_counter =26
         self.x = width //2
         self.y = height //2
         self.upper_left = (self.x-100, self.y-100)
@@ -52,6 +52,7 @@ class IPWEBCAM(object):
             return True,img
         except Exception as e:
             self.msg = e
+            print(e)
             return False,e
 
 
@@ -69,6 +70,7 @@ class IPWEBCAM(object):
             if not_blur :
                 # print(value)
                 img_name = self.snapshot(res,value)
+                #return True,img_name
         
                 
                 
@@ -137,11 +139,11 @@ class IPWEBCAM(object):
     
     def snapshot(self,img,blur_value):
         img_name = "img_{}.png".format(self.img_counter)
-        filename = os.path.join(SAVE_PATH,img_name)
+        filename = os.path.join(PATH.SAVE_PATH_RAW_IMAGE.value,img_name)
         
-        # cv2.putText(img, str(blur_value), (50, 20), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 255))
+        
         cv2.imwrite(filename, img)
-
+        cv2.putText(img, "CAPTURE", (50, 20), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 255))
         
         # cv2.imwrite(img_name,img)
         self.img_counter+=1
@@ -215,7 +217,7 @@ class IPWEBCAM(object):
 
     # threshold_min=12.5, threshold_max=13.6
     
-    def check_blurry(self,img,threshold_min=12.7, threshold_max=13.8):
+    def check_blurry(self,img,threshold_min=18.1, threshold_max=19.5):
 
         blur_value = cv2.Laplacian(img, cv2.CV_64F).var()
         

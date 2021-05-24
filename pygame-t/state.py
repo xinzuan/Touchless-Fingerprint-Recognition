@@ -21,5 +21,10 @@ class PATH(Enum):
     FSRCNN_MODEL ="/home/vania/TA/Implement/Touchless-Fingerprint-Recognition/models/FSRCNN_x4.pb"
     EDSR_MODEL ="/home/vania/TA/Implement/Touchless-Fingerprint-Recognition/models/EDSR_x4.pb"
     ESGRAN_MODEL ="/home/vania/TA/Implement/Touchless-Fingerprint-Recognition/models/RRDB_ESRGAN_x4.pth"
-    TEMP_IMAGE = "/home/vania/TA/Implement/Touchless-Fingerprint-Recognition/backend/complete/src/resources/temp/"
+
     
+    SAVE_PATH_RAW_IMAGE = '/home/vania/TA/Implement/Touchless-Fingerprint-Recognition/pygame-t/img'
+    TEMP_PATH ='/home/vania/TA/Implement/Touchless-Fingerprint-Recognition/backend/complete/src/resources/temp/'
+    SAVE_PATH ='/home/vania/TA/Implement/Touchless-Fingerprint-Recognition/pygame-t/res_preprocess'
+    DB_PATH ='/home/vania/TA/Implement/Touchless-Fingerprint-Recognition/backend/complete/src/resources/fingerprints/'
+        

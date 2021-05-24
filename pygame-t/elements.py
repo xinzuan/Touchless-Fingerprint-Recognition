@@ -133,11 +133,13 @@ class UIElement(Sprite):
         
 
 class ImageResult:
-    def __init__(self, filename,width =100,height = 100):
+    def __init__(self, filename,width =100,height = 100,x=150,y=150):
         # print('e')
         self.file = pg.image.load(filename)
         self.width = width
         self.height =height
+        self.x = x
+        self.y = y
 
         # resize :
         # https://stackoverflow.com/questions/20002242/how-to-scale-images-to-screen-size-in-pygame
@@ -148,7 +150,43 @@ class ImageResult:
     def draw(self, screen):
        
         
-        screen.blit(pg.transform.scale(self.file, (self.width, self.height)), (50, 50))
+        screen.blit(pg.transform.scale(self.file, (self.width, self.height)), (self.x, self.y))
+
+class LoadingBar:
+#     barPos      = (120, 360)
+# barSize     = (200, 20)
+# borderColor = (0, 0, 0)
+# barColor    = (0, 128, 0)
+    def __init__(self, barPos=(120, 360),barSize = (200, 20),borderColor=(0, 0, 0),barColor=(0, 128, 0) ,progress=0.1):
+        # print('e')
+        self.barPos = barPos
+        self.barSize = barSize
+        self.borderColor =borderColor
+        self.barColor = barColor
+        self.progress = progress
+
+        # resize :
+        # https://stackoverflow.com/questions/20002242/how-to-scale-images-to-screen-size-in-pygame
+        
+
+    def update(self):
+        self.progress =self.progress+0.01
+        
+        if self.progress >=1:
+            self.progress = 0.1
+
+    def draw(self, screen):
+        pos = self.barPos
+        size= self.barSize
+        borderC = self.barColor
+        progress = self.progress
+        barC = self.barColor
+        pg.draw.rect(screen, borderC, (*pos, *size), 1)
+        innerPos  = (pos[0]+3, pos[1]+3)
+        innerSize = ((size[0]-6) * progress, size[1]-6)
+        pg.draw.rect(screen, barC, (*innerPos, *innerSize))
+        
+        # screen.blit(pg.transform.scale(self.file, (self.width, self.height)), (self.x, self.y))  
 
 
 

@@ -25,7 +25,6 @@ from imagequality import ImageQualityMetrics
 
 TEMP_PATH ='/home/vania/TA/Implement/Touchless-Fingerprint-Recognition/backend/complete/src/resources/temp/'
 
-
 def get_matcher(image):
     url = 'http://localhost:8080/match'
     user_inbound = {'pathimage': image,'name':""}
@@ -43,30 +42,22 @@ def get_matcher(image):
 if __name__ == "__main__":
 
     	
-    test_img_folder=TEMP_PATH+"/*"
+    test_img_folder=TEMP_PATH+"*"
     res =pd.DataFrame(columns=['file', 'Name','Score','Match_Time'])
-    excel_file ='./match-index.xlsx'
+    excel_file ='./match-mix.xlsx'
     
     for path in glob.glob(test_img_folder):
         
         base = osp.splitext(osp.basename(path))[0]
-    #     # read images
-    #     print(base)
-        # img_x = cv2.imread(path)
-        # img_x = fingerprint_enhancer.enhance_Fingerprint(img_x)
-        # img_name = base +"_enhanced.png"
-        # filename = os.path.join(TEMP_PATH,img_name)
-        # cv2.imwrite(filename,img_x)
-        # book = load_workbook(excel_file)
-        # writer = pd.ExcelWriter(excel_file, engine='openpyxl')
-        # writer.book = book
         start_time = time.time()
         result = get_matcher(path)
         
         execution = time.time()
         print("total execution : ---  %s seconds ---" % (time.time() - start_time))
         # if result['data']['score'] >=40:
-        # print(result)
+        print(base)
+        
+           
         res =res.append({'file' : base,
                     'Name' : result['data']['name'], 
                     'Score': result['data']['score'],

@@ -5,7 +5,7 @@ from pygame.rect import Rect
 from enum import Enum
 from pygame.sprite import RenderUpdates
 from elements import InputBox,UIElement,ImageResult,LoadingBar
-from state import AppState
+from state import AppState,PATH
 from ipwebcam import IPWEBCAM
 from user import User
 from message import ShowMessage
@@ -21,6 +21,7 @@ import threading
 import time
 import sys
 from queue import Queue
+import os
 
 BLUE = (106, 159, 181)
 WHITE = (255, 255, 255)
@@ -38,7 +39,7 @@ barSize     = (200, 20)
 borderColor = (0, 0, 0)
 barColor    = (0, 128, 0)
 
-TEMP_PATH ='/home/vania/TA/Implement/Touchless-Fingerprint-Recognition/backend/complete/src/resources/temp/'
+
 
 def animate():
     for c in itertools.cycle(['|', '/', '-', '\\']):
@@ -51,9 +52,10 @@ def animate():
 
 def prompt_file():
     """Create a Tk file dialog and cleanup when finished"""
+
     top = tkinter.Tk()
     top.withdraw()  # hide window
-    file_name = tkinter.filedialog.askopenfilename(filetypes=[("Image Files", ".png .jpg .jpeg")])
+    file_name = tkinter.filedialog.askopenfilename(initialdir=PATH.SAVE_PATH_RAW_IMAGE.value,filetypes=[("Image Files", ".png .jpg .jpeg")])
     top.destroy()
     return file_name
 
@@ -250,12 +252,12 @@ def app_loop(screen, buttons=[],input_boxes=[],ipwebcam = None,origins=None,resu
         if is_upload: 
             # print(text)
             return AppState.UPLOAD,text
-
+        
         if ipwebcam:
             ipwebcam.draw(screen)
             
             if not ipwebcam.check_connection():
-                print(ipwebcam.check_connection())
+                
                 return AppState.HOME,False,ipwebcam.get_error_msg()
             else:
                 ui_action = ipwebcam.connect_ipwebcam()
@@ -315,7 +317,8 @@ def main():
         if app_state == AppState.CAPTURE:
 
             ipwebcam = IPWEBCAM(ip_host_port[0],ip_host_port[1], width=PYGAME_WIDTH, height=PYGAME_HEIGHT) 
-            print(ip_host_port)
+            
+            
             app_state,is_success,result = capture_screen(screen, ipwebcam)
             if not is_success:
               
@@ -324,8 +327,10 @@ def main():
                 messagebox.showerror("Error",result)
                
                 top.destroy()
+                pass
     
-                
+            # print(app_state)
+            # print(result)  
                 # pass
 
 
@@ -382,11 +387,11 @@ def main():
                     top.destroy()
                     app_state = AppState.HOME
                 else:
-                    if probe['data'] is not None:
+                    if probe['data']['name'] != '-':
                         top = tkinter.Tk()
                         top.withdraw()  # hide window
-                        
-                        messagebox.showinfo(title='Verification', message='Hello, '+probe['data']['name'])
+                        messagebox.showinfo(title='Verification', message='Hello, ' + probe['data']['name'])
+                        # messagebox.showinfo(title='Verification', message='Hasil penilaian : {:.2f}'.format(probe['data']['score']))
                         top.destroy()
                         images =[]
                         image_origin = ImageResult(ip_host_port,PYGAME_WIDTH//5,PYGAME_HEIGHT//3,x=250,y=50)
@@ -401,7 +406,7 @@ def main():
                     else:
                         top = tkinter.Tk()
                         top.withdraw()
-                        answer = messagebox.askyesno(title='Confirmation',message='Want to retry?')
+                        answer = messagebox.askyesno(title='Unauthorized',message='Want to retry?')
                         top.destroy()
                         if answer:
                             app_state = AppState.HOME

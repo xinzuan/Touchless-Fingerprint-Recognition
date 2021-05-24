@@ -18,20 +18,12 @@ import imutils
 import requests
 import pandas as pd
 from openpyxl import load_workbook
-# from gabor 
-# edsr around 5 minutes
-# Create an SR object
 from imagequality import ImageQualityMetrics
 from optparse import OptionParser
+from state import PATH
 
-TEMP_PATH ='/home/vania/TA/Implement/Touchless-Fingerprint-Recognition/backend/complete/src/resources/temp/'
-SAVE_PATH ='/home/vania/TA/Implement/Touchless-Fingerprint-Recognition/pygame-t/res_preprocess'
-DB_PATH ='/home/vania/TA/Implement/Touchless-Fingerprint-Recognition/backend/complete/src/resources/fingerprints/'
-# FSRCNN_PATH ='/home/vania/TA/Implement/Touchless-Fingerprint-Recognition/models/FSRCNN_x4.pb'
-# EDSR_PATH ='/home/vania/TA/Implement/Touchless-Fingerprint-Recognition/models/EDSR_x4.pb'
-KNOWN_DISTANCE = 16 #cm
-KNOWN_WIDTH = 1.5 #cm
-FOCAL_LENGTH = 2312 # utk jari index berjarak 16 cm dr kamera
+
+
 SIZE = 32
 def get_absolute_path(file_path):
     if not os.path.abspath(file_path):
@@ -91,7 +83,7 @@ class PreprocessImage(object):
         # img = cv2.convertScaleAbs(img, alpha=255/img.max())
         # th3 = cv2.adaptiveThreshold(img,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,\
         #             cv2.THRESH_BINARY,11,2)
-        # filename = os.path.join(TEMP_PATH,'threshold-res.jpg')
+        # filename = os.path.join(PATH.TEMP_PATH.value,'threshold-res.jpg')
         # cv2.imwrite(filename, th3)
         # image = np.copy(img)
         height, width = image.shape
@@ -241,7 +233,7 @@ class PreprocessImage(object):
         # out = cv2.cvtColor(res,cv2.COLOR_YUV2BGR)
         out = clahe.apply(img)
         return out
-    def increase_contrast_sr(self,img,clipLimit=4,size=(16,16)):
+    def increase_contrast_sr(self,img,clipLimit=4,size=(10,10)):
         clahe = cv2.createCLAHE(clipLimit=clipLimit,tileGridSize=size)
         return clahe.apply(img)
     # gamma correction : untuk control overall brightnes, gelap -> terang
@@ -317,7 +309,7 @@ class PreprocessImage(object):
     #adaptive threshold 
     def adaptive_threshold(self,img):
 
-        img = cv2.convertScaleAbs(img, alpha=255/img.max(),beta=img.min())
+        img = cv2.convertScaleAbs(img, alpha=255/img.max())
         img = cv2.adaptiveThreshold(img,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,cv2.THRESH_BINARY,11,2)
         
        
@@ -349,7 +341,7 @@ class PreprocessImage(object):
         img = self.to_gray(img)
         binary_mask = self.otsu_thresholding(img)
         img_name = "{}_otsu_masked.png".format(self.count)
-        filename = os.path.join(SAVE_PATH,img_name)
+        filename = os.path.join(PATH.SAVE_PATH.value,img_name)
         cv2.imwrite(filename, binary_mask)
 
 
@@ -398,7 +390,7 @@ class PreprocessImage(object):
         temp =cv2.putText(temp, "center", (cX - 20, cY - 20),
         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (23, 20, 120), 2)
         img_name = "find_center.png".format(self.count)
-        filename = os.path.join(SAVE_PATH,img_name)
+        filename = os.path.join(PATH.SAVE_PATH.value,img_name)
         cv2.imwrite(filename, temp)
 
         mask[cY+100:bottomy+1,topx:bottomx] = 0.0
@@ -449,7 +441,7 @@ class PreprocessImage(object):
         a = img.copy()
         a = cv2.drawContours(a,[box],0,(0,255,0),2)
         img_name = "{}_draw_rect.png".format(self.count)
-        filename = os.path.join(SAVE_PATH,img_name)
+        filename = os.path.join(PATH.SAVE_PATH.value,img_name)
         cv2.imwrite(filename, a)
        
         # mask = cv2.circle(mask, (x, y), 7, (255, 255, 255), -1)
@@ -464,13 +456,13 @@ class PreprocessImage(object):
         M = cv2.getPerspectiveTransform(src_pts, dst_pts)
         warped = cv2.warpPerspective(img, M, (w, h))
         img_name = "{}_transform_result.png".format(self.count)
-        filename = os.path.join(SAVE_PATH,img_name)
+        filename = os.path.join(PATH.SAVE_PATH.value,img_name)
         cv2.imwrite(filename, warped)
 
         if warped.shape[0]<warped.shape[1]:
             warped = cv2.rotate(warped, cv2.ROTATE_90_COUNTERCLOCKWISE)
         img_name = "{}_rotated_result.png".format(self.count)
-        filename = os.path.join(SAVE_PATH,img_name)
+        filename = os.path.join(PATH.SAVE_PATH.value,img_name)
         cv2.imwrite(filename, warped)
 
         
@@ -542,11 +534,7 @@ class PreprocessImage(object):
     def super_resolution(self,img,img_path,base):
         img_ref = img.copy()
         img = self.resize_image(img,30)
-        img_name = base+ "_resize_{}.png".format(self.count)
-        filename = os.path.join(SAVE_PATH,img_name)
-        cv2.imwrite(filename, img)
-
-
+        
       
 
        
@@ -646,7 +634,7 @@ class PreprocessImage(object):
         
         
         img_name = base + "_thesgran_sr{}.png".format(self.count)
-        esrgan_res = os.path.join(TEMP_PATH,img_name)
+        esrgan_res = os.path.join(PATH.TEMP_PATH.value,img_name)
         cv2.imwrite(esrgan_res, img_es)
 
         # filename = os.path.join(SAVE_PATH,img_name)
@@ -655,7 +643,7 @@ class PreprocessImage(object):
         # img_fr,maxima,minima = self.detect_ridges(img_fr,3)
         img_fr = self.adaptive_threshold(img_fr)
         img_name = base + "_thfsrcnn_sr_{}.png".format(self.count)
-        fsrcnn_res = os.path.join(TEMP_PATH,img_name)
+        fsrcnn_res = os.path.join(PATH.TEMP_PATH.value,img_name)
         cv2.imwrite(fsrcnn_res, img_fr)
 
         # filename = os.path.join(SAVE_PATH,img_name)
@@ -669,7 +657,7 @@ class PreprocessImage(object):
         
         img_e = self.adaptive_threshold(img_e)
         img_name = base+ "_thedsr_sr_{}.png".format(self.count)
-        edsr_res = os.path.join(TEMP_PATH,img_name)
+        edsr_res = os.path.join(PATH.TEMP_PATH.value,img_name)
         cv2.imwrite(edsr_res, img_e)
         # filename = os.path.join(SAVE_PATH,img_name)
         # cv2.imwrite(filename, img_e)
@@ -694,7 +682,7 @@ class PreprocessImage(object):
         
         height,width,c = img.shape
         clipLimit=4
-        size=(16,16)
+        size=(10,10)
 
         if height >= 1920 and width >= 1080:
             max_h = int(0.6*height)
@@ -750,7 +738,7 @@ class PreprocessImage(object):
         img_ref = img.copy()
         
         # if need_sr:
-        fsrcnn_res,edsr_res,esrgan_res = self.super_resolution(img_ref,img_path,base)
+        # fsrcnn_res,edsr_res,esrgan_res = self.super_resolution(img_ref,img_path,base)
         
         
         img = self.to_gray(img)
@@ -773,7 +761,7 @@ class PreprocessImage(object):
         # img_2 = self.adaptive_threshold(img_2)
         # img_name = base + "_threswithout_smoothing_{}.png".format(self.count)
         
-        # filename = os.path.join(TEMP_PATH,img_name)
+        # filename = os.path.join(PATH.TEMP_PATH.value,img_name)
         # cv2.imwrite(filename, img_2)
         # filename = os.path.join(SAVE_PATH,img_name)
         # cv2.imwrite(filename, img)
@@ -807,7 +795,7 @@ class PreprocessImage(object):
         img_x = self.adaptive_threshold(img_x)
         img_name = base + "_thres_{}.png".format(self.count)
         
-        filename = os.path.join(TEMP_PATH,img_name)
+        filename = os.path.join(PATH.TEMP_PATH.value,img_name)
         cv2.imwrite(filename, img_x)
         # filename = os.path.join(SAVE_PATH,img_name)
         # cv2.imwrite(filename, img)
@@ -819,7 +807,9 @@ class PreprocessImage(object):
 
        
         self.count+=1
-        print('done')
+        fsrcnn_res=''
+        edsr_res = ''
+        esrgan_res =''
     
         return filename,fsrcnn_res,edsr_res,esrgan_res
 
@@ -841,7 +831,7 @@ class PreprocessImage(object):
     def add_new_image(self,image_path,name):
         
         img_name = name + ".png"
-        filename = os.path.join(DB_PATH,img_name)
+        filename = os.path.join(PATH.DB_PATH.value,img_name)
         
         if os.path.isfile(filename):
             return False

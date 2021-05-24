@@ -40,3 +40,19 @@ detection -> https://sci-hub.ren/10.1109/SYSMART.2016.7894491
 
 
 png is better than jpg or jpeg
+
+
+
+## IMAGE DATABASE
+1. http://iab-rubric.org/papers/2015_BTAS_SmartphoneCamera.pdf  / 4] A. Sankaran, A. Malhotra, A. Mittal, M. Vatsa, and R. Singh.
+On smartphone camera based fingerphoto authentication. In
+BTAS, pages 1–7. IEEE, 2015.
+
+2. https://www.ee.iitb.ac.in/~dsplab/Biometrics/Touchless_Database.html
+
+
+
+
+
+# smoothing
+https://www.slideshare.net/hiiampallavi15/smoothing-in-digital-image-processing

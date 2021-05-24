@@ -25,9 +25,9 @@ class SuperResolution(object):
     def upsample_image(self,img):
         if self.type == SRType.EDSR.value[0]:
         
-            img = cv2.cvtColor(img,cv2.COLOR_GRAY2RGB)
+            # img = cv2.cvtColor(img,cv2.COLOR_GRAY2RGB)
             img = self.sr.upsample(img)
-            img = cv2.cvtColor(img,cv2.COLOR_RGB2GRAY)
+            # img = cv2.cvtColor(img,cv2.COLOR_RGB2GRAY)
             return img
 
         return self.sr.upsample(img)
@@ -49,7 +49,7 @@ class SRESGRAN(object):
         super().__init__()
     
     def upsample_image(self,img):
-        img = cv2.cvtColor(img,cv2.COLOR_GRAY2RGB)
+        # img = cv2.cvtColor(img,cv2.COLOR_GRAY2RGB)
         img = img * 1.0 / 255
         img = torch.from_numpy(np.transpose(img[:, :, [2, 1, 0]], (2, 0, 1))).float()
         img_LR = img.unsqueeze(0)
@@ -61,5 +61,5 @@ class SRESGRAN(object):
         output = (output * 255.0).round()
         output = cv2.normalize(output, None, 0, 255, cv2.NORM_MINMAX, cv2.CV_8U)
         
-        output = cv2.cvtColor(output,cv2.COLOR_RGB2GRAY)
+        # output = cv2.cvtColor(output,cv2.COLOR_RGB2GRAY)
         return output

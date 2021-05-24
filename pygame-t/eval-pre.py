@@ -245,7 +245,7 @@ class PreprocessImage(object):
         # out = cv2.cvtColor(res,cv2.COLOR_YUV2BGR)
         out = clahe.apply(img)
         return out
-    def increase_contrast_sr(self,img,clipLimit=4,size=(16,16)):
+    def increase_contrast_sr(self,img,clipLimit=4,size=(10,10)):
         clahe = cv2.createCLAHE(clipLimit=clipLimit,tileGridSize=size)
         return clahe.apply(img)
     # gamma correction : untuk control overall brightnes, gelap -> terang
@@ -321,7 +321,7 @@ class PreprocessImage(object):
     #adaptive threshold 
     def adaptive_threshold(self,img):
 
-        img = cv2.convertScaleAbs(img, alpha=255/img.max(),beta=img.min())
+        img = cv2.convertScaleAbs(img, alpha=255/img.max())
         img = cv2.adaptiveThreshold(img,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,cv2.THRESH_BINARY,11,2)
         
        
@@ -650,8 +650,8 @@ class PreprocessImage(object):
         
         
         img_name = base + "_thesgran_sr{}.png".format(self.count)
-        # esrgan_res = os.path.join(TEMP_PATH,img_name)
-        # cv2.imwrite(esrgan_res, img_es)
+        esrgan_res = os.path.join(TEMP_PATH,img_name)
+        cv2.imwrite(esrgan_res, img_es)
 
         esrgan_res = os.path.join(ES_PATH,img_name)
         cv2.imwrite(esrgan_res, img_es)
@@ -659,8 +659,8 @@ class PreprocessImage(object):
         # img_fr,maxima,minima = self.detect_ridges(img_fr,3)
         img_fr = self.adaptive_threshold(img_fr)
         img_name = base + "_thfsrcnn_sr_{}.png".format(self.count)
-        # fsrcnn_res = os.path.join(TEMP_PATH,img_name)
-        # cv2.imwrite(fsrcnn_res, img_fr)
+        fsrcnn_res = os.path.join(TEMP_PATH,img_name)
+        cv2.imwrite(fsrcnn_res, img_fr)
 
         fsrcnn_res = os.path.join(F_PATH,img_name)
         cv2.imwrite(fsrcnn_res, img_fr)
@@ -673,8 +673,8 @@ class PreprocessImage(object):
         
         img_e = self.adaptive_threshold(img_e)
         img_name = base+ "_thedsr_sr_{}.png".format(self.count)
-        # edsr_res = os.path.join(TEMP_PATH,img_name)
-        # cv2.imwrite(edsr_res, img_e)
+        edsr_res = os.path.join(TEMP_PATH,img_name)
+        cv2.imwrite(edsr_res, img_e)
         edsr_res = os.path.join(ED_PATH,img_name)
         cv2.imwrite(edsr_res, img_e)
 
@@ -698,7 +698,7 @@ class PreprocessImage(object):
         
         height,width,c = img.shape
         clipLimit=4
-        size=(16,16)
+        size=(10,10)
 
         if height >= 1920 and width >= 1080:
             max_h = int(0.6*height)
@@ -756,7 +756,6 @@ class PreprocessImage(object):
         # if need_sr:
         res = self.super_resolution(img_ref,img_path,base)
         
-        
         img = self.to_gray(img)
         # img = self.gamma_correction(img)
         # img_name = img_path + "_lightcorrection_{}.png".format(self.count)
@@ -811,10 +810,10 @@ class PreprocessImage(object):
         img_x = self.adaptive_threshold(img_x)
         img_name = base + "_thres_{}.png".format(self.count)
         
-        # filename = os.path.join(TEMP_PATH,img_name)
-        # cv2.imwrite(filename, img_x)
+        filename = os.path.join(TEMP_PATH,img_name)
+        cv2.imwrite(filename, img_x)
         filename = os.path.join(NOSR_PATH,img_name)
-        cv2.imwrite(filename, img)
+        cv2.imwrite(filename, img_x)
 
         
         
@@ -873,7 +872,7 @@ if __name__ == "__main__":
     
     p = PreprocessImage()
 
-    test_img_folder= "try_index/*"
+    test_img_folder= "Papa_L/*"
 
 
     

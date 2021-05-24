@@ -12,13 +12,16 @@ import com.example.restservice.models.inbounds.UserInbound;
 // import com.example.restservice.repositories.UserRepository;
 import com.example.restservice.repositories.CandidatesRepository;
 import com.example.restservice.services.api.UserService;
-import java.util.*; 
+import static java.util.stream.Collectors.*;
+import java.util.*;
+import java.util.stream.*;
 import java.io.*;
 
 import com.machinezoo.sourceafis.FingerprintTemplate;
 import com.machinezoo.sourceafis.FingerprintImage;
 import com.machinezoo.sourceafis.FingerprintMatcher;
-
+import com.machinezoo.sourceafis.FingerprintTransparency;
+// import com.machinezoo.sourceafis.MutableTemplate;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -46,6 +49,7 @@ public class UserServiceImpl implements UserService {
    
     CandidateDetails match = null;
     double high = 0;
+    
 
     // TODO : ADD FILE NOT FOUND EXCEPTION HANDLE
     try{
@@ -55,8 +59,9 @@ public class UserServiceImpl implements UserService {
                           .decode(Files.readAllBytes(Paths.get(userInbound.getPathimage()))));
         FingerprintMatcher matcher = new FingerprintMatcher()
                   .index(userTemplate);
-
-
+        // ImmutableTemplate template = new ImmutableTemplate(userTemplate.immutable);
+        // MutableTemplate mutable = template.mutable();
+        // System.out.println(mutable.minutiae.size());
 
         for (CandidateDetails candidate : candidates) {
             
@@ -71,13 +76,14 @@ public class UserServiceImpl implements UserService {
 			    e.printStackTrace();
 			}
       
-      double threshold = 39.9;
+      double threshold = 40;
      
       if (high >= threshold){
         User user = new User(match.getName(),high);
         return user;
       } else {
-        return null;
+        User user = new User("-",high);
+        return user;
       }
       
         
@@ -87,6 +93,7 @@ public class UserServiceImpl implements UserService {
   public CandidatesCache addUser(UserInbound userInbound) {
      
       String path = userInbound.getPathimage();
+
       // System.out.println(path);
       try{
           FingerprintTemplate template = new FingerprintTemplate(
