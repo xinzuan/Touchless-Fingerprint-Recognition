@@ -22,6 +22,8 @@ import time
 import sys
 from queue import Queue
 import os
+import glob
+from pathlib import Path
 
 BLUE = (106, 159, 181)
 WHITE = (255, 255, 255)
@@ -61,11 +63,11 @@ def prompt_file():
 
 def home_screen(screen,font):
     start_btn = UIElement(
-        center_position=(PYGAME_WIDTH//2, PYGAME_WIDTH//2),
+        center_position=(PYGAME_WIDTH//2, PYGAME_WIDTH//6),
         font_size=30,
         bg_rgb=BLUE,
         text_rgb=WHITE,
-        text="Start",
+        text="Capture",
         action=AppState.CAPTURE,
     )
 
@@ -352,22 +354,7 @@ def main():
             max_a = 100
             a = 0
             
-            # loading = LoadingBar(progress=1)
-            # loading.draw(screen)
-            # app_state = result_screen(screen,progressing=True,loading=loading)
-            # while t.isAlive():
-                
-            #     # loading.update()
-            #     print('aa')
-            #     app_state = result_screen(screen,progressing=t.isAlive())
-               
-            #     if not t.isAlive():
-            #         break
-            #     # print('a')
-            # # else:
-            # #     app_state = result_screen(screen,progressing=False)
-            # #     pass
-            # app_state = result_screen(screen,progressing=True)
+
             t.join()
             
             img_res,fsrcnn_res,edsr_res,esrgan_res = que.get()
@@ -401,6 +388,8 @@ def main():
                         # esrgan_res = ImageResult(img_res,PYGAME_WIDTH//5,PYGAME_HEIGHT//3,x = 450,y = 300)
                         # images =[image_origin,image_result,fsrcnn_res,edsr_res,esrgan_res]
                         images =[image_origin,image_result]
+                        clear_data()
+                       
                         app_state = result_screen(screen,images,progressing=False)
                         
                     else:
@@ -418,12 +407,13 @@ def main():
                             if answer:
                                 top = tkinter.Tk()
                                 top.withdraw()
-                                user_name = simpledialog.askstring(title="Test",
+                                user_name = simpledialog.askstring(title="Sign up",
                                     prompt="What's your name?:")
                                 top.destroy()
                                 success_save = preprocess.add_new_image(img_res,user_name)
                                 
                                 if success_save:
+                                    clear_data()
                                     top = tkinter.Tk()
                                     top.withdraw()
                                     messagebox.showinfo(title='Success', message='Data created')
@@ -436,12 +426,13 @@ def main():
                                     top.destroy()
                                     app_state = AppState.HOME
                             else:
+                                clear_data()
                                 app_state = AppState.HOME
                                 # check it out
                                 # print("Hello", USER_INP)
 
                                 # app_state = AppState.HOME
-
+                        
             
 
 
@@ -453,6 +444,7 @@ def main():
             
             
         if app_state == AppState.QUIT:
+            clear_data()
             pygame.quit()
             return
 
@@ -467,6 +459,20 @@ def DrawBar(screen,pos, size, borderC, barC, progress):
     innerPos  = (pos[0]+3, pos[1]+3)
     innerSize = ((size[0]-6) * progress, size[1]-6)
     pygame.draw.rect(screen, barC, (*innerPos, *innerSize))
+
+def delete_files(path_img):
+    
+    for f in Path(path_img).glob('*.png'):
+        
+        try:
+            f.unlink()
+            
+        except OSError as e:
+            print("Error: %s : %s" % (f, e.strerror))
+def clear_data():
+   
+    delete_files(PATH.SAVE_PATH_RAW_IMAGE.value)
+    delete_files(PATH.TEMP_PATH.value)
 
 if __name__ == "__main__":
     main()

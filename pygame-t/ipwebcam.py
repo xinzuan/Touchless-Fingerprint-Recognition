@@ -14,7 +14,7 @@ class IPWEBCAM(object):
         self.url = "http://"+host+":"+port
         self.width = width
         self.height = height
-        self.img_counter =26
+        self.img_counter =0
         self.x = width //2
         self.y = height //2
         self.upper_left = (self.x-100, self.y-100)
@@ -66,7 +66,7 @@ class IPWEBCAM(object):
         if is_img:
              
             not_blur,value = self.check_blurry(res)
-            print(value)
+            
             if not_blur :
                 # print(value)
                 img_name = self.snapshot(res,value)
@@ -143,7 +143,7 @@ class IPWEBCAM(object):
         
         
         cv2.imwrite(filename, img)
-        cv2.putText(img, "CAPTURE", (50, 20), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 255))
+        cv2.putText(img, "CAPTURE", (50, 200), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 255))
         
         # cv2.imwrite(img_name,img)
         self.img_counter+=1
