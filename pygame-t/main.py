@@ -157,7 +157,7 @@ def result_screen(screen,image_result=[],progressing=True):
         return app_loop(screen=screen,buttons=buttons,results=image_result)
     else:
         loading = LoadingBar(progress=1)
-        print('a')
+       
         return app_loop(screen=screen,loading=loading)
 
     
@@ -268,6 +268,7 @@ def app_loop(screen, buttons=[],input_boxes=[],ipwebcam = None,origins=None,resu
                   
                     return ui_action[0],True,ui_action[1]
         if results:
+            text =''
             for i in results:
                 i.draw(screen) 
         if loading:
@@ -290,6 +291,8 @@ def main():
     pygame.init()
 
     screen = pygame.display.set_mode((PYGAME_WIDTH, PYGAME_HEIGHT))
+
+    pygame.display.set_caption('Fingerprint')
     global font2 
     font = pygame.font.Font(None, 32)
     font2 = pygame.font.Font(None, 20)

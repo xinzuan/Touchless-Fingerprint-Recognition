@@ -323,6 +323,7 @@ class PreprocessImage(object):
         return img
     
     def normalize_image(self,img):
+        # return np.uint8(img)
         return np.uint8(cv2.normalize(img, None, 0, 255, cv2.NORM_MINMAX))
 
     # convert to gray 
@@ -340,9 +341,9 @@ class PreprocessImage(object):
 
         img = self.to_gray(img)
         binary_mask = self.otsu_thresholding(img)
-        img_name = "{}_otsu_masked.png".format(self.count)
-        filename = os.path.join(PATH.SAVE_PATH.value,img_name)
-        cv2.imwrite(filename, binary_mask)
+        # img_name = "{}_otsu_masked.png".format(self.count)
+        # filename = os.path.join(PATH.SAVE_PATH.value,img_name)
+        # cv2.imwrite(filename, binary_mask)
 
 
 
@@ -384,14 +385,14 @@ class PreprocessImage(object):
         
         cY = int(M["m01"] / M["m00"])
         
-        temp = mask.copy()
+        # temp = mask.copy()
         
-        temp =cv2.circle(temp,(cX, cY), 7, (23, 20, 120), -1)
-        temp =cv2.putText(temp, "center", (cX - 20, cY - 20),
-        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (23, 20, 120), 2)
-        img_name = "find_center.png".format(self.count)
-        filename = os.path.join(PATH.SAVE_PATH.value,img_name)
-        cv2.imwrite(filename, temp)
+        # temp =cv2.circle(temp,(cX, cY), 7, (23, 20, 120), -1)
+        # temp =cv2.putText(temp, "center", (cX - 20, cY - 20),
+        # cv2.FONT_HERSHEY_SIMPLEX, 0.5, (23, 20, 120), 2)
+        # img_name = "find_center.png".format(self.count)
+        # filename = os.path.join(PATH.SAVE_PATH.value,img_name)
+        # cv2.imwrite(filename, temp)
 
         mask[cY+100:bottomy+1,topx:bottomx] = 0.0
 
@@ -438,11 +439,11 @@ class PreprocessImage(object):
         # print(self.count)
         # distance = self.distance_to_camera(KNOWN_WIDTH, FOCAL_LENGTH, w)
         # print(distance)
-        a = img.copy()
-        a = cv2.drawContours(a,[box],0,(0,255,0),2)
-        img_name = "{}_draw_rect.png".format(self.count)
-        filename = os.path.join(PATH.SAVE_PATH.value,img_name)
-        cv2.imwrite(filename, a)
+        # a = img.copy()
+        # a = cv2.drawContours(a,[box],0,(0,255,0),2)
+        # img_name = "{}_draw_rect.png".format(self.count)
+        # filename = os.path.join(PATH.SAVE_PATH.value,img_name)
+        # cv2.imwrite(filename, a)
        
         # mask = cv2.circle(mask, (x, y), 7, (255, 255, 255), -1)
         
@@ -455,15 +456,15 @@ class PreprocessImage(object):
                             ], dtype="float32")
         M = cv2.getPerspectiveTransform(src_pts, dst_pts)
         warped = cv2.warpPerspective(img, M, (w, h))
-        img_name = "{}_transform_result.png".format(self.count)
-        filename = os.path.join(PATH.SAVE_PATH.value,img_name)
-        cv2.imwrite(filename, warped)
+        # img_name = "{}_transform_result.png".format(self.count)
+        # filename = os.path.join(PATH.SAVE_PATH.value,img_name)
+        # cv2.imwrite(filename, warped)
 
         if warped.shape[0]<warped.shape[1]:
             warped = cv2.rotate(warped, cv2.ROTATE_90_COUNTERCLOCKWISE)
-        img_name = "{}_rotated_result.png".format(self.count)
-        filename = os.path.join(PATH.SAVE_PATH.value,img_name)
-        cv2.imwrite(filename, warped)
+        # img_name = "{}_rotated_result.png".format(self.count)
+        # filename = os.path.join(PATH.SAVE_PATH.value,img_name)
+        # cv2.imwrite(filename, warped)
 
         
         height = warped.shape[0]
@@ -700,9 +701,7 @@ class PreprocessImage(object):
        
 
             finger_masking = self.segment_finger(img_copy,False)
-            # img_name = base + "_segmen_finger.png"
-            # filename = os.path.join(SAVE_PATH,img_name)
-            # cv2.imwrite(filename, finger_masking)
+
             
             
 
@@ -770,7 +769,7 @@ class PreprocessImage(object):
 
         img = self.smoothing(img)
         # img_name = base + "_smoothing_{}.png".format(self.count)
-        # filename = os.path.join(SAVE_PATH,img_name)
+        # filename = os.path.join(PATH.SAVE_PATH.value,img_name)
         # cv2.imwrite(filename, img)
 
         
@@ -778,7 +777,7 @@ class PreprocessImage(object):
         
         img = self.increase_contrast(img,clipLimit=clipLimit,size=size)
         # img_name = base + "_increasecontrast_{}.png".format(self.count)
-        # filename = os.path.join(SAVE_PATH,img_name)
+        # filename = os.path.join(PATH.SAVE_PATH.value,img_name)
         # cv2.imwrite(filename, img)
         
         
@@ -797,8 +796,8 @@ class PreprocessImage(object):
         
         filename = os.path.join(PATH.TEMP_PATH.value,img_name)
         cv2.imwrite(filename, img_x)
-        # filename = os.path.join(SAVE_PATH,img_name)
-        # cv2.imwrite(filename, img)
+        filename = os.path.join(PATH.SAVE_PATH.value,img_name)
+        cv2.imwrite(filename, img_x)
 
         
         

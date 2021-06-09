@@ -144,7 +144,7 @@ class IPWEBCAM(object):
         
         cv2.imwrite(filename, img)
         cv2.putText(img, "CAPTURE", (50, 200), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 255))
-        
+        # img_name = "img_capture.png"
         # cv2.imwrite(img_name,img)
         self.img_counter+=1
         # preprocess = PreprocessImage
