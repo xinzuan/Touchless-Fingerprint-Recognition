@@ -3,10 +3,10 @@ Fingerprints are unique patterns of whorls and lines found on the fingertips, se
 
 However, in the advancement of technology and the emphasis on social distancing, touchless fingerprint recognition has gained significant popularity. The challenge lies in enhancing the resolution and contrast of fingerprints without the use of sensors in touchless fingerprint systems. 
 
-This project aims to address this challenge by exploring the application of super resolution techniques, which can effectively enhance the resolution and capture finer patterns. In this project, the fingerprint images are captured using a android phone camera.
+This project aims to address this challenge by exploring suitable techniques, which can effectively enhance the resolution and capture finer patterns. In this project, the fingerprint images are captured using a android phone camera.
 
 ## Prerequisite
-The verification process can be done by uploading an image or directly capture the fingerprint by using a third party application. The simple UI interface:
+The verification process can be done by uploading an image or directly capture the fingerprint by using a third party application:
 ![alt text](/assets/ui.png)
 
 
