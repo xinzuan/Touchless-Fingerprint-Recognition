@@ -1,0 +1,4 @@
+name: fingerprint
+channels:
+  - defaults
+prefix: /home/vania/anaconda3/envs/fingerprint

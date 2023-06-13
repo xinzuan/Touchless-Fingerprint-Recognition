@@ -101,7 +101,7 @@ public class UserServiceImpl implements UserService {
                             .dpi(500)
                             .decode(Files.readAllBytes(Paths.get(path))));
           String name = userInbound.getName();
-                    // template harus di serialized menggunakan toByteArray() sebelum disimpan 
+                    
                   
                     
           byte[] serialized = template.toByteArray();

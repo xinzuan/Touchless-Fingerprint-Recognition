@@ -5,11 +5,11 @@ com/example/restservice/models/inbounds/UserInbound.class
 com/example/restservice/models/entities/User.class
 com/example/restservice/models/outbounds/wrapper/BaseResponse$BaseResponseBuilder.class
 com/example/restservice/models/outbounds/wrapper/DataResponse$DataResponseBuilder.class
-com/example/restservice/repositories/CandidatesRepository.class
 com/example/restservice/models/entities/CandidateDetails.class
+com/example/restservice/repositories/CandidatesRepository.class
 com/example/restservice/models/outbounds/wrapper/DataResponse.class
-com/example/restservice/services/api/UserService.class
 com/example/restservice/models/entities/CandidatesCache.class
+com/example/restservice/services/api/UserService.class
 com/example/restservice/RestServiceApplication.class
 com/example/restservice/controllers/UserDetailsController.class
 com/example/restservice/models/entities/User$UserBuilder.class

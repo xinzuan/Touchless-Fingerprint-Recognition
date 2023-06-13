@@ -30,7 +30,7 @@ public class RestServiceApplication {
     private CandidatesRepository candidatesRepository;
   
     // @Value("${dev.app.db}")
-	private String db_path = "/home/vania/TA/Implement/Touchless-Fingerprint-Recognition/backend/complete/src/resources/fingerprints/";
+	private String db_path = "backend/complete/src/resources/fingerprints/";
 
     public static void main(String[] args) {
         SpringApplication.run(RestServiceApplication.class, args);
@@ -50,7 +50,7 @@ public class RestServiceApplication {
                         .dpi(500)
                         .decode(Files.readAllBytes(Paths.get(path.toString()))));
                 String name = FilenameUtils.removeExtension(path.getFileName().toString());
-                // template harus di serialized menggunakan toByteArray() sebelum disimpan 
+         
               
                 
                 byte[] serialized = template.toByteArray();
